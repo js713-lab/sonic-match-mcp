@@ -10,9 +10,9 @@
   "version": "0.2.0",
   "packages": [
     {
-      "registryType": "pypi",
-      "identifier": "sonicmatch-mcp",
-      "version": "0.2.0",
+      "registryType": "mcpb",
+      "identifier": "https://github.com/js713-lab/sonic-match-mcp/releases/download/v0.2.0/sonicmatch-mcp-0.2.0.mcpb",
+      "fileSha256": "1bac62e395f54a22525abb687db34602c66ac2ea8c54eb189605d6b069626234",
       "transport": {
         "type": "stdio"
       },

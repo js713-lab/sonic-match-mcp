@@ -40,6 +40,9 @@ Do **not** treat this as “script in → YouTube Music search out.” That alre
 Requires Python 3.10+ and `ffmpeg` / `ffprobe` on PATH. `yt-dlp` is optional and **off by default** (`SONICMATCH_ALLOW_YTDLP=0`) because platform extractors break and may violate ToS. Prefer a local file.
 
 ```bash
+pip install git+https://github.com/js713-lab/sonic-match-mcp.git
+
+# or from a clone
 git clone https://github.com/js713-lab/sonic-match-mcp.git
 cd sonic-match-mcp
 python3 -m venv .venv
@@ -223,7 +226,8 @@ docker run --rm -p 8765:8765 -v sonic-cache:/data/cache sonicmatch-mcp
 - [x] MCP registry listing (`server.json`)
 - [x] Generate tool, marked `source=generated` (local demo; swap a real model at your own legal risk)
 - [ ] Real CLAP audio embeddings
-- [ ] Official MCP registry publish + PyPI release (see [PUBLISH.md](PUBLISH.md))
+- [x] Official MCP registry listing via GitHub Release MCPB (see [PUBLISH.md](PUBLISH.md))
+- [ ] PyPI release
 - [ ] Beat-grid auto-recut of the video itself (not just EDL hints)
 
 ## Why this can be a good open-source project

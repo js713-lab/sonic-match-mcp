@@ -1,0 +1,71 @@
+{
+  "manifest_version": "0.4",
+  "name": "sonicmatch-mcp",
+  "display_name": "Sonicmatch",
+  "version": "0.2.0",
+  "description": "Analyze video mood and pace, then recommend license-safe BGM with a mix spec.",
+  "author": {
+    "name": "js713-lab",
+    "url": "https://github.com/js713-lab/sonic-match-mcp"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/js713-lab/sonic-match-mcp"
+  },
+  "server": {
+    "type": "uv",
+    "entry_point": "src/sonicmatch/__main__.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "sonicmatch-mcp"],
+      "env": {
+        "GEMINI_API_KEY": "${user_config.gemini_api_key}",
+        "JAMENDO_CLIENT_ID": "${user_config.jamendo_client_id}",
+        "FREESOUND_API_KEY": "${user_config.freesound_api_key}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "status", "description": "Report ffmpeg, API keys, and seed catalog status." },
+    { "name": "ingest_video", "description": "Ingest a local file or HTTPS URL and return an asset_id." },
+    { "name": "analyze_video_music", "description": "Analyze a video for mood, pace, speech, and hook window." },
+    { "name": "recommend_bgm", "description": "Recommend 3-7 license-safe BGM tracks for the video." },
+    { "name": "search_music", "description": "Search the catalog by text, BPM, or mood." },
+    { "name": "get_track", "description": "Return track metadata, license, and URLs." },
+    { "name": "preview_mix", "description": "Preview a mix with ducking and an ffmpeg recipe." },
+    { "name": "export_mix_spec", "description": "Export mix spec, ffmpeg command, and attribution." },
+    { "name": "suggest_cuts", "description": "Suggest beat-grid scene cuts and an EDL." },
+    { "name": "generate_bed", "description": "Generate a non-cleared demo bed. Requires an explicit acknowledgement." },
+    { "name": "save_brand_kit", "description": "Save a brand kit for later recommendations." },
+    { "name": "analyze_batch", "description": "Analyze up to 20 videos and cluster a shared mini-playlist." }
+  ],
+  "user_config": {
+    "gemini_api_key": {
+      "type": "string",
+      "title": "Gemini API key",
+      "description": "Optional. Gemini video understanding for analyze_video_music.",
+      "required": false,
+      "sensitive": true
+    },
+    "jamendo_client_id": {
+      "type": "string",
+      "title": "Jamendo client ID",
+      "description": "Optional. Jamendo catalog search.",
+      "required": false,
+      "sensitive": true
+    },
+    "freesound_api_key": {
+      "type": "string",
+      "title": "Freesound API key",
+      "description": "Optional. Freesound beds and loops.",
+      "required": false,
+      "sensitive": true
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": { "python": ">=3.10" }
+  },
+  "keywords": ["mcp", "music", "bgm", "video", "reels"]
+}

@@ -1,8 +1,7 @@
 name: Publish to PyPI + MCP Registry
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
 
 jobs:
   publish:
