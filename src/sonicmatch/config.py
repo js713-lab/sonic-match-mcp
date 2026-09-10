@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     http_host: str = Field(default="127.0.0.1", alias="SONICMATCH_HTTP_HOST")
     http_port: int = Field(default=8765, alias="SONICMATCH_HTTP_PORT")
     max_download_mb: int = Field(default=200, alias="SONICMATCH_MAX_DOWNLOAD_MB")
+    allow_ytdlp: bool = Field(default=False, alias="SONICMATCH_ALLOW_YTDLP")
     max_keyframes: int = 12
     proxy_max_seconds: int = 90
 

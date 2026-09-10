@@ -121,10 +121,10 @@ def parse_source_url(source: str) -> tuple[str, str, str]:
         raise SonicError("SSRF_REJECTED", f"Scheme not allowed: {raw.split(':', 1)[0]}")
 
     parsed = urlparse(raw)
-    if parsed.scheme not in {"http", "https"}:
+    if parsed.scheme != "https":
         raise SonicError(
-            "BAD_URL",
-            "Source must be a local file path or an http(s) URL.",
+            "SSRF_REJECTED",
+            "Remote ingest is HTTPS-only. Use a local file path, or an https URL.",
         )
     host = parsed.hostname or ""
     if not host:

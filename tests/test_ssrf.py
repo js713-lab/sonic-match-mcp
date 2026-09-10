@@ -8,13 +8,19 @@ from sonicmatch.ssrf import classify_url, parse_source_url, resolve_and_check_ho
 
 def test_reject_loopback_literal():
     with pytest.raises(SonicError) as exc:
-        parse_source_url("http://127.0.0.1/secret.mp4")
+        parse_source_url("https://127.0.0.1/secret.mp4")
+    assert exc.value.code == "SSRF_REJECTED"
+
+
+def test_reject_plain_http():
+    with pytest.raises(SonicError) as exc:
+        parse_source_url("http://example.com/clip.mp4")
     assert exc.value.code == "SSRF_REJECTED"
 
 
 def test_reject_localhost_name():
     with pytest.raises(SonicError) as exc:
-        parse_source_url("http://localhost/clip.mp4")
+        parse_source_url("https://localhost/clip.mp4")
     assert exc.value.code == "SSRF_REJECTED"
 
 
@@ -26,9 +32,9 @@ def test_reject_file_scheme():
 
 def test_reject_private_ip():
     with pytest.raises(SonicError):
-        parse_source_url("http://192.168.1.10/v.mp4")
+        parse_source_url("https://192.168.1.10/v.mp4")
     with pytest.raises(SonicError):
-        parse_source_url("http://10.0.0.2/v.mp4")
+        parse_source_url("https://10.0.0.2/v.mp4")
 
 
 def test_reject_ipv6_loopback():

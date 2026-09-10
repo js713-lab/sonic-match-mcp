@@ -87,6 +87,7 @@ class MusicHub:
                 found.extend(self.seed.search(_q(q)))
             found.extend(self.seed.all())
             notes.append(f"seed catalog: {len(self.seed.all())} tracks")
+        # Generated beds are never mixed into "license-safe" auto recs.
 
         if catalog in {"auto", "jamendo"}:
             if not self.settings.has_jamendo:
@@ -128,10 +129,14 @@ class MusicHub:
                 except SonicError as exc:
                     notes.append(exc.message)
 
-        found = [ensure_embed(t) for t in found]
+        found = [ensure_embed(t) for t in found if t.source != "generated"]
         # Embedding nearest-neighbours from the sqlite index as extra candidates.
         try:
-            found.extend(t for _score, t in self.index.similar(profile, limit=limit * 2))
+            found.extend(
+                t
+                for _score, t in self.index.similar(profile, limit=limit * 2)
+                if t.source != "generated"
+            )
         except Exception:
             pass
         self.index.upsert(found)

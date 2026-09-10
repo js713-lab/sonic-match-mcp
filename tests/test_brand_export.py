@@ -72,7 +72,13 @@ def test_suggest_cuts_after_analyze(color_mp4: Path, settings):
 
 def test_generate_bed(settings):
     configure(settings)
-    out = generate_bed(prompt="warm cafe instrumental", duration_sec=8, bpm=108, energy=0.5)
+    out = generate_bed(
+        prompt="warm cafe instrumental",
+        duration_sec=8,
+        bpm=108,
+        energy=0.5,
+        i_understand_not_commercially_cleared=True,
+    )
     assert out["ok"] is True
     assert out["track"]["source"] == "generated"
     assert "NOT" in out["warning"] or "not" in out["warning"].lower()

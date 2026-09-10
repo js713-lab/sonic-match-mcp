@@ -32,7 +32,7 @@ def test_ingest_missing_file(settings):
 
 def test_ingest_rejects_loopback_url(settings):
     with pytest.raises(SonicError) as exc:
-        ingest_video("http://127.0.0.1:8080/clip.mp4", settings=settings)
+        ingest_video("https://127.0.0.1:8080/clip.mp4", settings=settings)
     assert exc.value.code == "SSRF_REJECTED"
     with pytest.raises(SonicError):
         parse_source_url("http://127.0.0.1/x.mp4")

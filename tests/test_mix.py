@@ -24,7 +24,12 @@ def test_preview_mix_writes_files(color_mp4: Path, settings):
 def test_preview_mix_uses_generated_local_file(color_mp4: Path, settings):
     configure(settings)
     asset = ingest_video(str(color_mp4), settings=settings)
-    gen = generate_bed(prompt="warm cafe", duration_sec=8, bpm=108)
+    gen = generate_bed(
+        prompt="warm cafe",
+        duration_sec=8,
+        bpm=108,
+        i_understand_not_commercially_cleared=True,
+    )
     assert gen["ok"]
     local = Path(gen["track"]["download_url"])
     assert local.exists()

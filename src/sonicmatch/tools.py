@@ -21,6 +21,15 @@ from sonicmatch.models import SearchQuery
 from sonicmatch.music.generate import generate_bed as _generate_bed
 from sonicmatch.music.hub import MusicHub
 from sonicmatch.music.rank import rank_tracks, stub_profile_from_prefs
+from sonicmatch.policy import (
+    CONTENT_ID_WARNING,
+    GENERATED_TERMS_WARNING,
+    TRENDING_WARNING,
+    YTDLP_TOS_WARNING,
+    day1_risks_status,
+    looks_like_trending_request,
+    track_risk_notes,
+)
 
 _settings: Settings | None = None
 _hub: MusicHub | None = None
@@ -64,6 +73,9 @@ def status() -> dict[str, Any]:
             ffmpeg=bool(shutil.which("ffmpeg")),
             ffprobe=bool(shutil.which("ffprobe")),
             yt_dlp=bool(shutil.which("yt-dlp")),
+            ytdlp_enabled=bool(s.allow_ytdlp),
+            max_download_mb=s.max_download_mb,
+            day1_risks=day1_risks_status(s.allow_ytdlp, s.max_download_mb),
             gemini=s.has_gemini,
             jamendo=s.has_jamendo,
             freesound=s.has_freesound,
@@ -74,7 +86,8 @@ def status() -> dict[str, Any]:
             brand_kits=list_brand_kits(s),
             note=(
                 "v0 demos offline with the seed catalog. Missing keys degrade; "
-                "they never invent Instagram/TikTok official music."
+                "they never invent Instagram/TikTok official music. "
+                + TRENDING_WARNING
             ),
         )
 
@@ -91,12 +104,16 @@ def ingest_video(source: str, max_seconds: int = 180) -> dict[str, Any]:
             k: payload.get("probe_json", {}).get(k)
             for k in ("format", "n_streams")
         }
+        notes = [
+            "Call analyze_video_music next with this asset_id. "
+            "Do not ask the user to paste video bytes."
+        ]
+        if asset.source_type == "url":
+            notes.append(YTDLP_TOS_WARNING if get_settings().allow_ytdlp else "Remote ingest is HTTPS-only and size-capped.")
         return ok(
             asset=payload,
-            hint=(
-                "Call analyze_video_music next with this asset_id. "
-                "Do not ask the user to paste video bytes."
-            ),
+            hint=notes[0],
+            notes=notes,
         )
 
     return _catch(_run)
@@ -117,6 +134,8 @@ def analyze_video_music(
             settings=get_settings(),
         )
         notes = []
+        if looks_like_trending_request(platform_hint, extra_notes):
+            notes.append(TRENDING_WARNING)
         if "gemini-disabled" in profile.degraded:
             notes.append(
                 "GEMINI_API_KEY not set; used local ffmpeg/audio heuristics. "
@@ -204,17 +223,30 @@ def recommend_bgm(
             mood=mood,
             max_results=n,
         )
+        if looks_like_trending_request(
+            platform_hint, genre, mood, " ".join(resolved.search_queries)
+        ):
+            notes.append(TRENDING_WARNING)
+        if resolved.platform_hint in {
+            "instagram_story",
+            "instagram_reel",
+            "tiktok",
+            "youtube_short",
+        }:
+            notes.append(TRENDING_WARNING)
         warning = (
             "Track licenses are independent of this MCP server's MIT license. "
             "Nothing here is an official Instagram / TikTok / YouTube Music sticker. "
-            "Do not recommend commercial pop unless the adapter is a user-owned library."
+            + CONTENT_ID_WARNING
         )
         return ok(
             recommendations=[r.model_dump(mode="json") for r in recs],
             instrumental_only=bool(inst),
             platform_hint=resolved.platform_hint,
+            trending_available=False,
             notes=notes,
             license_warning=warning,
+            content_id_warning=CONTENT_ID_WARNING,
         )
 
     return _catch(_run)
@@ -242,8 +274,19 @@ def search_music(
             duration_max=duration_max,
             limit=max(1, min(int(limit or 10), 25)),
         )
+        if looks_like_trending_request(query):
+            return ok(
+                tracks=[],
+                notes=[TRENDING_WARNING],
+                trending_available=False,
+                code="TRENDING_UNAVAILABLE",
+            )
         tracks, notes = hub().search(q, catalog)
-        return ok(tracks=[t.model_dump(mode="json") for t in tracks], notes=notes)
+        return ok(
+            tracks=[t.model_dump(mode="json") for t in tracks],
+            notes=notes,
+            content_id_warning=CONTENT_ID_WARNING,
+        )
 
     return _catch(_run)
 
@@ -255,7 +298,11 @@ def get_track(track_id: str) -> dict[str, Any]:
         track = hub().get(track_id)
         if track is None:
             raise SonicError("NOT_FOUND", f"Unknown track_id: {track_id}")
-        return ok(track=track.model_dump(mode="json"))
+        return ok(
+            track=track.model_dump(mode="json"),
+            notes=track_risk_notes(track),
+            content_id_warning=CONTENT_ID_WARNING,
+        )
 
     return _catch(_run)
 
@@ -346,10 +393,13 @@ def generate_bed(
     bpm: int = 110,
     energy: float = 0.5,
     asset_id: Optional[str] = None,
+    i_understand_not_commercially_cleared: bool = False,
 ) -> dict[str, Any]:
     """Generate a demo bed (local synth). Always marked source=generated — not catalog-cleared."""
 
     def _run() -> dict[str, Any]:
+        if not i_understand_not_commercially_cleared:
+            raise SonicError("GENERATED_TERMS", GENERATED_TERMS_WARNING)
         s = get_settings()
         if asset_id:
             profile = load_profile(asset_id, s)
@@ -383,12 +433,8 @@ def generate_bed(
         hub().index.upsert([track])
         return ok(
             track=track.model_dump(mode="json"),
-            warning=(
-                "Generated audio is NOT a licensed catalog track. "
-                "Suno / Stable Audio / Lyria commercial terms are messy — "
-                "do not ship this in ads without reading those terms. "
-                "The local fallback is a sine-tremolo demo bed."
-            ),
+            commercially_cleared=False,
+            warning=GENERATED_TERMS_WARNING,
         )
 
     return _catch(_run)

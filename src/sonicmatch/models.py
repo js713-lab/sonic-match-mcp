@@ -191,6 +191,8 @@ class Track(BaseModel):
     source: TrackSource = "seed"
     embed: Optional[list[float]] = None
     tags: list[str] = Field(default_factory=list)
+    # CC/RF is not a Content ID waiver. Never set this to "cleared".
+    content_id_risk: Literal["unknown", "likely"] = "unknown"
 
     @field_validator("energy", mode="before")
     @classmethod
@@ -208,7 +210,9 @@ class Recommendation(BaseModel):
     reason: str
     suggested_in_out: tuple[float, float]
     ducking: DuckingMode = "off"
+    # Declared license is not NC. NOT Content ID / Meta sticker clearance.
     license_ok_for_platform: bool = False
+    content_id_risk: Literal["unknown", "likely"] = "unknown"
 
     @field_validator("suggested_in_out", mode="before")
     @classmethod

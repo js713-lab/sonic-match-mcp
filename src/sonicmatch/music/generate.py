@@ -59,4 +59,5 @@ def generate_bed(
         ),
         source="generated",
         tags=["generated", "demo"],
+        content_id_risk="likely",
     )

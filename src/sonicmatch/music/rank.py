@@ -209,6 +209,7 @@ def rank_tracks(
                 suggested_in_out=hook_slice(track, profile.duration_sec, profile.energy_mean),
                 ducking=ducking,  # type: ignore[arg-type]
                 license_ok_for_platform=ok,
+                content_id_risk=track.content_id_risk if track.content_id_risk == "likely" else "unknown",
             )
         )
     scored.sort(key=lambda r: r.score, reverse=True)

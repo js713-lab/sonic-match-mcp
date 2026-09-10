@@ -38,7 +38,10 @@ Rules:
 - Recommend a 12–20s hook window, not the whole song.
 - Always surface license + attribution. Track licenses ≠ this repo's MIT license.
 - Never scrape or pretend to have Instagram / TikTok / YouTube Music official libraries.
-- Never claim a track is an official platform sticker.
+- Never claim a track is an official platform sticker or Content-ID-safe.
+- Never invent "trending" audio. That graph is closed.
+- yt-dlp platform ingest is opt-in (SONICMATCH_ALLOW_YTDLP). Prefer local files.
+- generate_bed requires i_understand_not_commercially_cleared=true.
 - Return 3–7 tracks, each with a why-string.
 - Do not send raw video bytes through the MCP payload; use asset_id.
 - Generated beds are NOT catalog-cleared. Paid catalogs only via user-owned JSON.
@@ -61,8 +64,9 @@ def status() -> dict[str, Any]:
 def ingest_video(source: str, max_seconds: int = 180) -> dict[str, Any]:
     """Ingest a local video path or public http(s) URL.
 
-    Accepts a filesystem path, a direct video URL, or YouTube / TikTok / Instagram /
-    Facebook links (via yt-dlp). Rejects file:// and loopback/private IPs (SSRF).
+    Accepts a filesystem path or an HTTPS video URL. YouTube/TikTok/Instagram
+    via yt-dlp is OFF unless SONICMATCH_ALLOW_YTDLP=1 (ToS + extractor risk).
+    Rejects file://, http, loopback, and private IPs (SSRF). Size-capped.
 
     Extracts duration/fps/aspect with ffprobe, a 16 kHz mono wav, up to 12 scene
     keyframes, and a 360p proxy. Returns an asset_id. Never returns video bytes.
@@ -231,11 +235,14 @@ def generate_bed(
     bpm: int = 110,
     energy: float = 0.5,
     asset_id: Optional[str] = None,
+    i_understand_not_commercially_cleared: bool = False,
 ) -> dict[str, Any]:
     """Generate a bed when the catalog misses. Always marked source=generated.
 
-    Local fallback is a sine-tremolo demo. NOT cleared for ads. Check Suno/Stable
-    Audio/Lyria terms before swapping in a real generator.
+    Refuses unless i_understand_not_commercially_cleared=true. Local fallback is
+    a sine-tremolo demo. NOT cleared for ads. Check Suno/Stable Audio/Lyria terms
+    before swapping in a real generator. Generated tracks are excluded from
+    recommend_bgm auto catalogs.
     """
     return tools.generate_bed(
         prompt=prompt,
@@ -243,6 +250,7 @@ def generate_bed(
         bpm=bpm,
         energy=energy,
         asset_id=asset_id,
+        i_understand_not_commercially_cleared=i_understand_not_commercially_cleared,
     )
 
 

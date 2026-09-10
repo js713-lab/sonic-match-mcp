@@ -37,7 +37,7 @@ Do **not** treat this as “script in → YouTube Music search out.” That alre
 
 ## Quick start
 
-Requires Python 3.10+ and `ffmpeg` / `ffprobe` on PATH. `yt-dlp` is optional (public YouTube/TikTok/IG/FB URLs).
+Requires Python 3.10+ and `ffmpeg` / `ffprobe` on PATH. `yt-dlp` is optional and **off by default** (`SONICMATCH_ALLOW_YTDLP=0`) because platform extractors break and may violate ToS. Prefer a local file.
 
 ```bash
 git clone https://github.com/js713-lab/sonic-match-mcp.git
@@ -136,7 +136,7 @@ Hard rule: **never send raw multi-MB video through the MCP payload.** Store loca
 | Tool | Input | Output |
 |---|---|---|
 | `status` | — | ffmpeg / keys / seed count |
-| `ingest_video` | path or URL, `max_seconds=180` | `asset_id`, duration, probe, keyframe paths |
+| `ingest_video` | local path or HTTPS URL, `max_seconds=180` | `asset_id`, duration, probe, keyframe paths. Platform URLs need `SONICMATCH_ALLOW_YTDLP=1` |
 | `analyze_video_music` | `asset_id` + platform + notes | VideoSonic profile |
 | `recommend_bgm` | profile or `asset_id` + prefs + `brand_kit` | 3–7 ranked tracks + reasons + license + hook in/out |
 | `search_music` | free text / bpm / mood | catalog hits |
@@ -144,7 +144,7 @@ Hard rule: **never send raw multi-MB video through the MCP payload.** Store loca
 | `preview_mix` | `asset_id` + `track_id` + ducking | preview files + ffmpeg recipe + mix spec |
 | `export_mix_spec` | `asset_id` + `track_id` + `render?` | mix spec + ffmpeg + attribution (no render unless asked) |
 | `suggest_cuts` | `asset_id` + optional bpm/track | beat grid, snapped scene cuts, EDL, intro/peak/outro |
-| `generate_bed` | prompt / bpm / duration | `source=generated` track (not catalog-cleared) |
+| `generate_bed` | prompt / bpm / duration + `i_understand_not_commercially_cleared=true` | `source=generated` track (not catalog-cleared; excluded from auto recs) |
 | `save_brand_kit` | BPM / moods / no-vocals | persisted kit name for `recommend_bgm(brand_kit=…)` |
 | `analyze_batch` | list of paths/URLs (max 20) | mood cluster + shared mini-playlist |
 
@@ -232,7 +232,15 @@ docker run --rm -p 8765:8765 -v sonic-cache:/data/cache sonicmatch-mcp
 
 **No if** you only wrap YouTube Music search. That is a weekend clone and a copyright magnet.
 
-Risks designed for on day 1: Content ID, yt-dlp ToS / broken extractors, upload size / SSRF, “trending” is a closed Meta graph, generation-model commercial terms.
+Day-1 risk gates (enforced in code, not slogans):
+
+| Risk | Gate |
+|---|---|
+| **Content ID** | Every rec/search/get_track includes `content_id_warning`. CC/RF is never "Content-ID-safe". `content_id_risk` is `unknown` or `likely`, never `cleared`. |
+| **yt-dlp ToS / broken extractors** | Platform URL ingest is off unless `SONICMATCH_ALLOW_YTDLP=1`. Failures map to `YTDLP_EXTRACTOR` and tell you to pass a local file. |
+| **Upload size / SSRF** | HTTPS-only remote ingest, no `file://` / loopback / private IPs, `SONICMATCH_MAX_DOWNLOAD_MB` (default 200) on files, HTTP, and yt-dlp `--max-filesize`. |
+| **“Trending” is a closed Meta graph** | Queries for trending/viral/IG audio/TikTok sound return empty + `TRENDING_UNAVAILABLE`. `recommend_bgm` always sets `trending_available=false`. |
+| **Generation-model commercial terms** | `generate_bed` refuses unless `i_understand_not_commercially_cleared=true`. Generated tracks are excluded from auto `recommend_bgm`. |
 
 ## Use cases
 

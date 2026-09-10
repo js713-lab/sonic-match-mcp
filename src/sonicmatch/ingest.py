@@ -20,6 +20,7 @@ from sonicmatch.ffmpeg_util import (
     which_ffmpeg,
 )
 from sonicmatch.models import VideoAsset
+from sonicmatch.policy import YTDLP_TOS_WARNING, ytdlp_extractor_failed
 from sonicmatch.ssrf import (
     classify_url,
     content_type_looks_like_video,
@@ -157,58 +158,63 @@ def _download_direct(url: str, dest: Path, settings: Settings) -> Path:
     return dest
 
 
-def _yt_dlp_download(url: str, dest_dir: Path, max_seconds: int) -> Path:
+def _yt_dlp_download(url: str, dest_dir: Path, max_seconds: int, max_mb: int) -> Path:
     binary = shutil.which("yt-dlp")
     if not binary:
         raise SonicError(
             "YTDLP_MISSING",
-            "yt-dlp is not on PATH. Install it to ingest YouTube/TikTok/IG/FB URLs.",
+            "yt-dlp is not on PATH. Prefer a local file. "
+            + YTDLP_TOS_WARNING,
         )
     out_tmpl = str(dest_dir / "source.%(ext)s")
-    cmd = [
+    size = f"{max(1, int(max_mb))}M"
+    base = [
         binary,
         "--no-playlist",
         "--no-warnings",
+        "--max-filesize",
+        size,
         "-f",
         "mp4/bv*+ba/b",
         "--merge-output-format",
         "mp4",
         "-o",
         out_tmpl,
+    ]
+    cmd = base + [
         "--download-sections",
         f"*0-{int(max_seconds)}",
         "--force-keyframes-at-cuts",
         url,
     ]
-    # download-sections is best-effort; also pass --max-filesize
     try:
         import subprocess
 
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180, check=False)
     except subprocess.TimeoutExpired as exc:
-        raise SonicError("TIMEOUT", "yt-dlp timed out.") from exc
+        raise SonicError("TIMEOUT", "yt-dlp timed out. Pass a local file instead.") from exc
     if proc.returncode != 0:
-        # Retry without download-sections (older yt-dlp).
-        cmd = [
-            binary,
-            "--no-playlist",
-            "--no-warnings",
-            "-f",
-            "mp4/bv*+ba/b",
-            "--merge-output-format",
-            "mp4",
-            "-o",
-            out_tmpl,
-            url,
-        ]
+        cmd = base + [url]
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180, check=False)
         if proc.returncode != 0:
-            tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-6:]
+            blob = (proc.stderr or proc.stdout or "").strip()
+            tail = blob.splitlines()[-6:]
+            if ytdlp_extractor_failed(blob):
+                raise SonicError(
+                    "YTDLP_EXTRACTOR",
+                    "yt-dlp extractor failed or the platform blocked the download. "
+                    "Extractors break often. Pass a local file instead. "
+                    + " | ".join(tail),
+                )
             raise SonicError("DOWNLOAD_FAILED", "yt-dlp failed: " + " | ".join(tail))
     files = list(dest_dir.glob("source.*"))
     files = [f for f in files if f.suffix.lower() not in {".part", ".ytdl", ".json"}]
     if not files:
         raise SonicError("DOWNLOAD_FAILED", "yt-dlp did not produce a file.")
+    st = files[0].stat()
+    if st.st_size > max_mb * 1024 * 1024:
+        files[0].unlink(missing_ok=True)
+        raise SonicError("TOO_LARGE", f"yt-dlp file exceeded {max_mb} MB.")
     return files[0]
 
 
@@ -245,7 +251,16 @@ def ingest_video(
             return VideoAsset.model_validate_json(index.read_text(encoding="utf-8"))
         local = adir / "source.mp4"
         if kind == "platform":
-            downloaded = _yt_dlp_download(source, adir, max_seconds)
+            if not settings.allow_ytdlp:
+                raise SonicError(
+                    "YTDLP_DISABLED",
+                    "Platform URL ingest is off by default. "
+                    + YTDLP_TOS_WARNING
+                    + " Pass a local file, or set SONICMATCH_ALLOW_YTDLP=1.",
+                )
+            downloaded = _yt_dlp_download(
+                source, adir, max_seconds, settings.max_download_mb
+            )
             if downloaded.resolve() != local.resolve():
                 if local.exists():
                     local.unlink()
