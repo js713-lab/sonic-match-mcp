@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.js713-lab/sonicmatch-mcp",
   "title": "Sonicmatch",
-  "description": "Video/URL in → scene/mood/pace analysis → license-safe BGM shortlist + mix spec. Not Instagram's catalog.",
+  "description": "Analyze video mood and pace, then recommend license-safe BGM with a mix spec.",
   "repository": {
     "url": "https://github.com/js713-lab/sonic-match-mcp",
     "source": "github"
@@ -15,7 +15,30 @@
       "version": "0.2.0",
       "transport": {
         "type": "stdio"
-      }
+      },
+      "environmentVariables": [
+        {
+          "name": "GEMINI_API_KEY",
+          "description": "Optional. Gemini video understanding for analyze_video_music.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "JAMENDO_CLIENT_ID",
+          "description": "Optional. Jamendo catalog search.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "FREESOUND_API_KEY",
+          "description": "Optional. Freesound beds and loops.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        }
+      ]
     }
   ]
 }

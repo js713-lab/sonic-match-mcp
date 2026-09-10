@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 
+LABEL io.modelcontextprotocol.server.name="io.github.js713-lab/sonicmatch-mcp"
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*

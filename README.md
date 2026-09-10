@@ -223,7 +223,7 @@ docker run --rm -p 8765:8765 -v sonic-cache:/data/cache sonicmatch-mcp
 - [x] MCP registry listing (`server.json`)
 - [x] Generate tool, marked `source=generated` (local demo; swap a real model at your own legal risk)
 - [ ] Real CLAP audio embeddings
-- [ ] Official MCP registry publish + PyPI release
+- [ ] Official MCP registry publish + PyPI release (see [PUBLISH.md](PUBLISH.md))
 - [ ] Beat-grid auto-recut of the video itself (not just EDL hints)
 
 ## Why this can be a good open-source project
