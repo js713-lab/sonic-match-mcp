@@ -1,0 +1,1 @@
+# Bundled seed catalog lives next to this package.

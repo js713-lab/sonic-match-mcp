@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "sonicmatch": {
+      "command": "/absolute/path/to/sonicmatch-mcp/.venv/bin/sonicmatch-mcp",
+      "args": [],
+      "env": {
+        "GEMINI_API_KEY": "",
+        "JAMENDO_CLIENT_ID": "",
+        "FREESOUND_API_KEY": ""
+      }
+    }
+  }
+}

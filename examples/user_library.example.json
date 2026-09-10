@@ -1,0 +1,24 @@
+{
+  "comment": "User-owned licensed library. Only include tracks you already have the right to use (e.g. your Epidemic Sound / Artlist subscription). Point SONICMATCH_LIBRARY_PATH or EPIDEMIC_LIBRARY_PATH at a file like this. sonicmatch will not scrape those sites.",
+  "tracks": [
+    {
+      "id": "library_shop_warm_01",
+      "title": "My Licensed Shop Bed",
+      "artist": "Epidemic-or-Artlist-artist",
+      "duration_sec": 120,
+      "bpm": 100,
+      "energy": 0.5,
+      "moods": ["warm", "clean"],
+      "genres": ["acoustic"],
+      "instrumental": true,
+      "loopable": true,
+      "preview_url": null,
+      "download_url": "/absolute/path/to/the/wav/you/downloaded.wav",
+      "license": "Epidemic Sound personal license (user-owned)",
+      "attribution_required": true,
+      "attribution_text": "My Licensed Shop Bed — used under the subscriber's Epidemic Sound license",
+      "source": "library",
+      "tags": ["brand-kit"]
+    }
+  ]
+}

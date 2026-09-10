@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "sonicmatch": {
+      "command": "python3",
+      "args": ["-m", "sonicmatch"],
+      "env": {
+        "GEMINI_API_KEY": "",
+        "JAMENDO_CLIENT_ID": "",
+        "FREESOUND_API_KEY": ""
+      }
+    }
+  }
+}

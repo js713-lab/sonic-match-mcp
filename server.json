@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.js713-lab/sonicmatch-mcp",
+  "title": "Sonicmatch",
+  "description": "Video/URL in → scene/mood/pace analysis → license-safe BGM shortlist + mix spec. Not Instagram's catalog.",
+  "repository": {
+    "url": "https://github.com/js713-lab/sonic-match-mcp",
+    "source": "github"
+  },
+  "version": "0.2.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "sonicmatch-mcp",
+      "version": "0.2.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

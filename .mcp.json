@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "sonicmatch": {
+      "command": "sonicmatch-mcp",
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "JAMENDO_CLIENT_ID": "${JAMENDO_CLIENT_ID}",
+        "FREESOUND_API_KEY": "${FREESOUND_API_KEY}"
+      }
+    }
+  }
+}
