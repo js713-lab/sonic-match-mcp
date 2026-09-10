@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
 import time
 from pathlib import Path
 from typing import Iterable
@@ -29,44 +30,50 @@ class TrackIndex:
     def __init__(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         self.path = path
-        self._conn = sqlite3.connect(str(path))
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.executescript(_SCHEMA)
-        self._conn.commit()
+        # MCP 2.x calls tools on worker threads.
+        self._conn = sqlite3.connect(str(path), check_same_thread=False)
+        self._lock = threading.Lock()
+        with self._lock:
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.executescript(_SCHEMA)
+            self._conn.commit()
 
     def upsert(self, tracks: Iterable[Track]) -> int:
         n = 0
         now = time.time()
-        for raw in tracks:
-            track = ensure_embed(raw)
-            self._conn.execute(
-                "INSERT OR REPLACE INTO tracks(id, source, title, json, updated_at) VALUES (?,?,?,?,?)",
-                (
-                    track.id,
-                    track.source,
-                    track.title,
-                    track.model_dump_json(),
-                    now,
-                ),
-            )
-            n += 1
-        self._conn.commit()
-        self._maybe_lancedb([ensure_embed(t) for t in tracks])
+        materialized = [ensure_embed(raw) for raw in tracks]
+        with self._lock:
+            for track in materialized:
+                self._conn.execute(
+                    "INSERT OR REPLACE INTO tracks(id, source, title, json, updated_at) VALUES (?,?,?,?,?)",
+                    (
+                        track.id,
+                        track.source,
+                        track.title,
+                        track.model_dump_json(),
+                        now,
+                    ),
+                )
+                n += 1
+            self._conn.commit()
+        self._maybe_lancedb(materialized)
         return n
 
     def get(self, track_id: str) -> Track | None:
-        row = self._conn.execute("SELECT json FROM tracks WHERE id = ?", (track_id,)).fetchone()
+        with self._lock:
+            row = self._conn.execute("SELECT json FROM tracks WHERE id = ?", (track_id,)).fetchone()
         if not row:
             return None
         return Track.model_validate_json(row[0])
 
     def all(self, source: str | None = None) -> list[Track]:
-        if source:
-            rows = self._conn.execute(
-                "SELECT json FROM tracks WHERE source = ?", (source,)
-            ).fetchall()
-        else:
-            rows = self._conn.execute("SELECT json FROM tracks").fetchall()
+        with self._lock:
+            if source:
+                rows = self._conn.execute(
+                    "SELECT json FROM tracks WHERE source = ?", (source,)
+                ).fetchall()
+            else:
+                rows = self._conn.execute("SELECT json FROM tracks").fetchall()
         out: list[Track] = []
         for (blob,) in rows:
             try:
@@ -114,7 +121,8 @@ class TrackIndex:
         return scored[:limit]
 
     def count(self) -> int:
-        row = self._conn.execute("SELECT COUNT(*) FROM tracks").fetchone()
+        with self._lock:
+            row = self._conn.execute("SELECT COUNT(*) FROM tracks").fetchone()
         return int(row[0]) if row else 0
 
     def _maybe_lancedb(self, tracks: list[Track]) -> None:
