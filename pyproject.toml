@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sonicmatch-mcp"
 version = "0.2.0"
-description = "MCP server: video/URL in → scene/mood/pace analysis → license-safe BGM shortlist + mix preview."
+description = "Pick BGM that doesn't fight the voiceover. Watches the video, returns a hook + ffmpeg ducking spec, prints the license."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

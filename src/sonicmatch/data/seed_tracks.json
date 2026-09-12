@@ -1,5 +1,5 @@
 {
-  "comment": "Checked-in demo catalog. Track licenses are independent of the MIT repo license. Replace URLs with files you actually host before production use.",
+  "comment": "20 Reel-editor beds (CC0 / CC-BY) plus two fixtures: a vocal track (searchable; skipped when speech prefers instrumental) and a CC-BY-NC track (searchable; never auto-recommended). Track licenses are independent of the MIT repo license. These rows have no hosted audio; preview_mix synthesizes a demo bed. For ads/shops, point SONICMATCH_LIBRARY_PATH / EPIDEMIC_LIBRARY_PATH / ARTLIST_LIBRARY_PATH at JSON you already licensed. Replace URLs with files you actually host before production use.",
   "tracks": [
     {
       "id": "seed_golden_hour_latte",
@@ -8,17 +8,29 @@
       "duration_sec": 142,
       "bpm": 108,
       "energy": 0.55,
-      "moods": ["warm", "playful", "cozy"],
-      "genres": ["acoustic", "indie folk", "pop"],
+      "moods": [
+        "warm",
+        "playful",
+        "cozy"
+      ],
+      "genres": [
+        "acoustic",
+        "indie folk",
+        "pop"
+      ],
       "instrumental": true,
       "loopable": true,
       "preview_url": null,
       "download_url": null,
       "license": "CC0-1.0",
       "attribution_required": false,
-      "attribution_text": "Golden Hour Latte — Open Reel Ensemble (CC0 1.0)",
+      "attribution_text": "Golden Hour Latte \u2014 Open Reel Ensemble (CC0 1.0)",
       "source": "seed",
-      "tags": ["guitar", "cafe", "lifestyle"]
+      "tags": [
+        "guitar",
+        "cafe",
+        "lifestyle"
+      ]
     },
     {
       "id": "seed_indie_porch_110",
@@ -27,15 +39,26 @@
       "duration_sec": 128,
       "bpm": 110,
       "energy": 0.62,
-      "moods": ["warm", "upbeat", "playful"],
-      "genres": ["indie folk", "acoustic"],
+      "moods": [
+        "warm",
+        "upbeat",
+        "playful"
+      ],
+      "genres": [
+        "indie folk",
+        "acoustic"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC-BY-4.0",
       "attribution_required": true,
       "attribution_text": "\"Porch Light 110\" by Kampung Tape (CC BY 4.0)",
       "source": "seed",
-      "tags": ["ukulele", "handclaps", "reel"]
+      "tags": [
+        "ukulele",
+        "handclaps",
+        "reel"
+      ]
     },
     {
       "id": "seed_lofi_study_bed",
@@ -44,15 +67,28 @@
       "duration_sec": 180,
       "bpm": 84,
       "energy": 0.32,
-      "moods": ["calm", "chill", "lo-fi", "warm"],
-      "genres": ["lo-fi", "hip hop", "bed"],
+      "moods": [
+        "calm",
+        "chill",
+        "lo-fi",
+        "warm"
+      ],
+      "genres": [
+        "lo-fi",
+        "hip hop",
+        "bed"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC0-1.0",
       "attribution_required": false,
-      "attribution_text": "Window Rain Loops — Night Bus Records (CC0 1.0)",
+      "attribution_text": "Window Rain Loops \u2014 Night Bus Records (CC0 1.0)",
       "source": "seed",
-      "tags": ["vinyl", "piano", "podcast"]
+      "tags": [
+        "vinyl",
+        "piano",
+        "podcast"
+      ]
     },
     {
       "id": "seed_product_click",
@@ -61,15 +97,28 @@
       "duration_sec": 64,
       "bpm": 122,
       "energy": 0.78,
-      "moods": ["upbeat", "clean", "playful"],
-      "genres": ["electronic", "corporate", "pop"],
+      "moods": [
+        "upbeat",
+        "clean",
+        "playful"
+      ],
+      "genres": [
+        "electronic",
+        "corporate",
+        "pop"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC-BY-4.0",
       "attribution_required": true,
       "attribution_text": "\"Clean Unbox Pulse\" by Shelf Studio (CC BY 4.0)",
       "source": "seed",
-      "tags": ["product", "shopee", "retail", "clicks"]
+      "tags": [
+        "product",
+        "shopee",
+        "retail",
+        "clicks"
+      ]
     },
     {
       "id": "seed_fastcut_spark",
@@ -78,15 +127,26 @@
       "duration_sec": 48,
       "bpm": 128,
       "energy": 0.86,
-      "moods": ["upbeat", "hype", "playful"],
-      "genres": ["electronic", "house"],
+      "moods": [
+        "upbeat",
+        "hype",
+        "playful"
+      ],
+      "genres": [
+        "electronic",
+        "house"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC0-1.0",
       "attribution_required": false,
-      "attribution_text": "Spark Cut Grid — Edit Bay (CC0 1.0)",
+      "attribution_text": "Spark Cut Grid \u2014 Edit Bay (CC0 1.0)",
       "source": "seed",
-      "tags": ["tiktok", "fast-cut", "reels"]
+      "tags": [
+        "tiktok",
+        "fast-cut",
+        "reels"
+      ]
     },
     {
       "id": "seed_podcast_duckbed",
@@ -95,15 +155,27 @@
       "duration_sec": 210,
       "bpm": 76,
       "energy": 0.22,
-      "moods": ["calm", "understated", "warm"],
-      "genres": ["ambient", "bed", "acoustic"],
+      "moods": [
+        "calm",
+        "understated",
+        "warm"
+      ],
+      "genres": [
+        "ambient",
+        "bed",
+        "acoustic"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC-BY-4.0",
       "attribution_required": true,
       "attribution_text": "\"Consonant Safe Bed\" by Quiet Room (CC BY 4.0)",
       "source": "seed",
-      "tags": ["podcast", "speech", "soft pad"]
+      "tags": [
+        "podcast",
+        "speech",
+        "soft pad"
+      ]
     },
     {
       "id": "seed_travel_coast",
@@ -112,15 +184,28 @@
       "duration_sec": 156,
       "bpm": 102,
       "energy": 0.58,
-      "moods": ["warm", "adventurous", "playful"],
-      "genres": ["indie", "tropical", "folk"],
+      "moods": [
+        "warm",
+        "adventurous",
+        "playful"
+      ],
+      "genres": [
+        "indie",
+        "tropical",
+        "folk"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC-BY-4.0",
       "attribution_required": true,
       "attribution_text": "\"East Coast Highway\" by Monsoon Radio (CC BY 4.0)",
       "source": "seed",
-      "tags": ["travel", "vlog", "malaysia", "sea"]
+      "tags": [
+        "travel",
+        "vlog",
+        "malaysia",
+        "sea"
+      ]
     },
     {
       "id": "seed_tropical_kopitiam",
@@ -129,15 +214,27 @@
       "duration_sec": 118,
       "bpm": 96,
       "energy": 0.5,
-      "moods": ["warm", "cozy", "tropical"],
-      "genres": ["acoustic", "world", "indie"],
+      "moods": [
+        "warm",
+        "cozy",
+        "tropical"
+      ],
+      "genres": [
+        "acoustic",
+        "world",
+        "indie"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC0-1.0",
       "attribution_required": false,
-      "attribution_text": "Kopitiam Fan — Jalan Alor Tape (CC0 1.0)",
+      "attribution_text": "Kopitiam Fan \u2014 Jalan Alor Tape (CC0 1.0)",
       "source": "seed",
-      "tags": ["sea", "cafe", "nylon guitar"]
+      "tags": [
+        "sea",
+        "cafe",
+        "nylon guitar"
+      ]
     },
     {
       "id": "seed_event_crowd",
@@ -146,15 +243,25 @@
       "duration_sec": 180,
       "bpm": 118,
       "energy": 0.72,
-      "moods": ["upbeat", "celebratory", "warm"],
-      "genres": ["pop", "indie"],
+      "moods": [
+        "upbeat",
+        "celebratory",
+        "warm"
+      ],
+      "genres": [
+        "pop",
+        "indie"
+      ],
       "instrumental": true,
       "loopable": false,
       "license": "CC-BY-4.0",
       "attribution_required": true,
       "attribution_text": "\"Hall Lights Up\" by Campus Recap (CC BY 4.0)",
       "source": "seed",
-      "tags": ["event", "intro-peak-outro"]
+      "tags": [
+        "event",
+        "intro-peak-outro"
+      ]
     },
     {
       "id": "seed_event_outro",
@@ -163,32 +270,25 @@
       "duration_sec": 90,
       "bpm": 88,
       "energy": 0.4,
-      "moods": ["warm", "calm", "celebratory"],
-      "genres": ["acoustic", "pop"],
+      "moods": [
+        "warm",
+        "calm",
+        "celebratory"
+      ],
+      "genres": [
+        "acoustic",
+        "pop"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC-BY-4.0",
       "attribution_required": true,
       "attribution_text": "\"Credits Walk\" by Campus Recap (CC BY 4.0)",
       "source": "seed",
-      "tags": ["outro", "event"]
-    },
-    {
-      "id": "seed_silent_motif",
-      "title": "Paper Boat Theme",
-      "artist": "Silent Frame",
-      "duration_sec": 134,
-      "bpm": 92,
-      "energy": 0.48,
-      "moods": ["warm", "melodic", "playful"],
-      "genres": ["orchestral lite", "indie", "motif"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC0-1.0",
-      "attribution_required": false,
-      "attribution_text": "Paper Boat Theme — Silent Frame (CC0 1.0)",
-      "source": "seed",
-      "tags": ["silent-film", "melody", "accessibility"]
+      "tags": [
+        "outro",
+        "event"
+      ]
     },
     {
       "id": "seed_brand_acoustic",
@@ -197,151 +297,26 @@
       "duration_sec": 120,
       "bpm": 100,
       "energy": 0.52,
-      "moods": ["warm", "clean", "understated"],
-      "genres": ["acoustic", "pop"],
+      "moods": [
+        "warm",
+        "clean",
+        "understated"
+      ],
+      "genres": [
+        "acoustic",
+        "pop"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC-BY-4.0",
       "attribution_required": true,
       "attribution_text": "\"Shop Kit Warm A\" by Brand Bed Co (CC BY 4.0)",
       "source": "seed",
-      "tags": ["brand-kit", "no-vocals", "shop"]
-    },
-    {
-      "id": "seed_yt_safe_bed",
-      "title": "Claim-Safe Pluck",
-      "artist": "Library Cart",
-      "duration_sec": 150,
-      "bpm": 112,
-      "energy": 0.6,
-      "moods": ["upbeat", "warm", "clean"],
-      "genres": ["corporate", "acoustic", "electronic"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC0-1.0",
-      "attribution_required": false,
-      "attribution_text": "Claim-Safe Pluck — Library Cart (CC0 1.0)",
-      "source": "seed",
-      "tags": ["youtube", "shorts"]
-    },
-    {
-      "id": "seed_dark_drone",
-      "title": "Basement Air",
-      "artist": "Low Ceiling",
-      "duration_sec": 200,
-      "bpm": 60,
-      "energy": 0.18,
-      "moods": ["dark", "cinematic", "tense"],
-      "genres": ["drone", "cinematic", "ambient"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC-BY-4.0",
-      "attribution_required": true,
-      "attribution_text": "\"Basement Air\" by Low Ceiling (CC BY 4.0)",
-      "source": "seed",
-      "tags": ["drone", "avoid-lifestyle"]
-    },
-    {
-      "id": "seed_trap_hit",
-      "title": "Hard Count 140",
-      "artist": "Gridlock",
-      "duration_sec": 96,
-      "bpm": 140,
-      "energy": 0.92,
-      "moods": ["aggressive", "hype", "dark"],
-      "genres": ["trap", "hip hop"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC-BY-4.0",
-      "attribution_required": true,
-      "attribution_text": "\"Hard Count 140\" by Gridlock (CC BY 4.0)",
-      "source": "seed",
-      "tags": ["808", "trap"]
-    },
-    {
-      "id": "seed_vocal_pop",
-      "title": "Chorus in the Kitchen",
-      "artist": "Demo Vocalist",
-      "duration_sec": 132,
-      "bpm": 116,
-      "energy": 0.7,
-      "moods": ["playful", "upbeat", "warm"],
-      "genres": ["pop", "indie"],
-      "instrumental": false,
-      "loopable": false,
-      "license": "CC-BY-4.0",
-      "attribution_required": true,
-      "attribution_text": "\"Chorus in the Kitchen\" by Demo Vocalist (CC BY 4.0)",
-      "source": "seed",
-      "tags": ["vocals", "lyrics"]
-    },
-    {
-      "id": "seed_nc_ballad",
-      "title": "Weekend Noncommercial",
-      "artist": "Hobbyist",
-      "duration_sec": 160,
-      "bpm": 78,
-      "energy": 0.35,
-      "moods": ["sad", "warm", "calm"],
-      "genres": ["ballad", "piano"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC-BY-NC-4.0",
-      "attribution_required": true,
-      "attribution_text": "\"Weekend Noncommercial\" by Hobbyist (CC BY-NC 4.0) — not for ads",
-      "source": "seed",
-      "tags": ["noncommercial"]
-    },
-    {
-      "id": "seed_edm_drop",
-      "title": "Busy Drop 150",
-      "artist": "Festival Fakeout",
-      "duration_sec": 72,
-      "bpm": 150,
-      "energy": 0.95,
-      "moods": ["hype", "aggressive"],
-      "genres": ["edm", "festival"],
-      "instrumental": true,
-      "loopable": false,
-      "license": "CC-BY-4.0",
-      "attribution_required": true,
-      "attribution_text": "\"Busy Drop 150\" by Festival Fakeout (CC BY 4.0)",
-      "source": "seed",
-      "tags": ["drop", "supersaw"]
-    },
-    {
-      "id": "seed_gentle_strings",
-      "title": "Third Act Strings",
-      "artist": "Recital Hall",
-      "duration_sec": 140,
-      "bpm": 70,
-      "energy": 0.28,
-      "moods": ["elegant", "calm", "cinematic"],
-      "genres": ["classical", "cinematic"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC0-1.0",
-      "attribution_required": false,
-      "attribution_text": "Third Act Strings — Recital Hall (CC0 1.0)",
-      "source": "seed",
-      "tags": ["strings", "wedding"]
-    },
-    {
-      "id": "seed_afro_shuffle",
-      "title": "Pasar Malam Shuffle",
-      "artist": "Night Market Band",
-      "duration_sec": 110,
-      "bpm": 114,
-      "energy": 0.68,
-      "moods": ["playful", "upbeat", "tropical"],
-      "genres": ["afrobeat", "world", "indie"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC-BY-4.0",
-      "attribution_required": true,
-      "attribution_text": "\"Pasar Malam Shuffle\" by Night Market Band (CC BY 4.0)",
-      "source": "seed",
-      "tags": ["sea", "percussion", "lifestyle"]
+      "tags": [
+        "brand-kit",
+        "no-vocals",
+        "shop"
+      ]
     },
     {
       "id": "seed_food_sizzle",
@@ -350,83 +325,26 @@
       "duration_sec": 54,
       "bpm": 118,
       "energy": 0.64,
-      "moods": ["playful", "warm", "upbeat"],
-      "genres": ["funk", "acoustic"],
+      "moods": [
+        "playful",
+        "warm",
+        "upbeat"
+      ],
+      "genres": [
+        "funk",
+        "acoustic"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC0-1.0",
       "attribution_required": false,
-      "attribution_text": "Wok Bloom — Hawker Channel (CC0 1.0)",
+      "attribution_text": "Wok Bloom \u2014 Hawker Channel (CC0 1.0)",
       "source": "seed",
-      "tags": ["food", "lifestyle", "bass"]
-    },
-    {
-      "id": "seed_sports_break",
-      "title": "Sideline Clap",
-      "artist": "Field Kit",
-      "duration_sec": 40,
-      "bpm": 132,
-      "energy": 0.84,
-      "moods": ["hype", "upbeat"],
-      "genres": ["sports", "electronic"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC-BY-4.0",
-      "attribution_required": true,
-      "attribution_text": "\"Sideline Clap\" by Field Kit (CC BY 4.0)",
-      "source": "seed",
-      "tags": ["sports", "stinger"]
-    },
-    {
-      "id": "seed_slow_piano",
-      "title": "Empty Platform",
-      "artist": "Komuter Keys",
-      "duration_sec": 168,
-      "bpm": 66,
-      "energy": 0.2,
-      "moods": ["sad", "calm", "warm"],
-      "genres": ["piano", "ambient"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC0-1.0",
-      "attribution_required": false,
-      "attribution_text": "Empty Platform — Komuter Keys (CC0 1.0)",
-      "source": "seed",
-      "tags": ["slow", "vlog"]
-    },
-    {
-      "id": "seed_mid_tempo_guitar",
-      "title": "Two-Chord Commute",
-      "artist": "Open Reel Ensemble",
-      "duration_sec": 126,
-      "bpm": 98,
-      "energy": 0.46,
-      "moods": ["warm", "understated", "cozy"],
-      "genres": ["acoustic", "indie"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC-BY-4.0",
-      "attribution_required": true,
-      "attribution_text": "\"Two-Chord Commute\" by Open Reel Ensemble (CC BY 4.0)",
-      "source": "seed",
-      "tags": ["guitar", "medium"]
-    },
-    {
-      "id": "seed_kids_event",
-      "title": "Balloon Count-In",
-      "artist": "Recess Tape",
-      "duration_sec": 80,
-      "bpm": 120,
-      "energy": 0.7,
-      "moods": ["playful", "celebratory", "upbeat"],
-      "genres": ["kids", "pop"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC0-1.0",
-      "attribution_required": false,
-      "attribution_text": "Balloon Count-In — Recess Tape (CC0 1.0)",
-      "source": "seed",
-      "tags": ["event", "campus"]
+      "tags": [
+        "food",
+        "lifestyle",
+        "bass"
+      ]
     },
     {
       "id": "seed_fashion_click",
@@ -435,32 +353,25 @@
       "duration_sec": 45,
       "bpm": 115,
       "energy": 0.66,
-      "moods": ["clean", "elegant", "upbeat"],
-      "genres": ["electronic", "pop"],
+      "moods": [
+        "clean",
+        "elegant",
+        "upbeat"
+      ],
+      "genres": [
+        "electronic",
+        "pop"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC-BY-4.0",
       "attribution_required": true,
       "attribution_text": "\"Lookbook Tick\" by Shelf Studio (CC BY 4.0)",
       "source": "seed",
-      "tags": ["fashion", "product"]
-    },
-    {
-      "id": "seed_night_drive",
-      "title": "PLUS Highway 2am",
-      "artist": "Monsoon Radio",
-      "duration_sec": 190,
-      "bpm": 90,
-      "energy": 0.42,
-      "moods": ["chill", "warm", "adventurous"],
-      "genres": ["synth", "lo-fi", "travel"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC-BY-4.0",
-      "attribution_required": true,
-      "attribution_text": "\"PLUS Highway 2am\" by Monsoon Radio (CC BY 4.0)",
-      "source": "seed",
-      "tags": ["travel", "night", "sea"]
+      "tags": [
+        "fashion",
+        "product"
+      ]
     },
     {
       "id": "seed_hook_ready",
@@ -469,32 +380,53 @@
       "duration_sec": 32,
       "bpm": 124,
       "energy": 0.8,
-      "moods": ["playful", "upbeat", "warm"],
-      "genres": ["pop", "electronic"],
+      "moods": [
+        "playful",
+        "upbeat",
+        "warm"
+      ],
+      "genres": [
+        "pop",
+        "electronic"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC0-1.0",
       "attribution_required": false,
-      "attribution_text": "Fifteen Second Smile — Edit Bay (CC0 1.0)",
+      "attribution_text": "Fifteen Second Smile \u2014 Edit Bay (CC0 1.0)",
       "source": "seed",
-      "tags": ["hook", "reel", "15s"]
+      "tags": [
+        "hook",
+        "reel",
+        "15s"
+      ]
     },
     {
-      "id": "seed_gamelan_lite",
-      "title": "Soft Gamelan Bed",
-      "artist": "Jalan Alor Tape",
-      "duration_sec": 144,
-      "bpm": 86,
-      "energy": 0.38,
-      "moods": ["warm", "elegant", "tropical"],
-      "genres": ["world", "ambient"],
+      "id": "seed_mid_tempo_guitar",
+      "title": "Two-Chord Commute",
+      "artist": "Open Reel Ensemble",
+      "duration_sec": 126,
+      "bpm": 98,
+      "energy": 0.46,
+      "moods": [
+        "warm",
+        "understated",
+        "cozy"
+      ],
+      "genres": [
+        "acoustic",
+        "indie"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC-BY-4.0",
       "attribution_required": true,
-      "attribution_text": "\"Soft Gamelan Bed\" by Jalan Alor Tape (CC BY 4.0)",
+      "attribution_text": "\"Two-Chord Commute\" by Open Reel Ensemble (CC BY 4.0)",
       "source": "seed",
-      "tags": ["malaysia", "sea", "motif"]
+      "tags": [
+        "guitar",
+        "medium"
+      ]
     },
     {
       "id": "seed_city_hustle",
@@ -503,32 +435,24 @@
       "duration_sec": 100,
       "bpm": 126,
       "energy": 0.74,
-      "moods": ["upbeat", "playful"],
-      "genres": ["electronic", "indie"],
+      "moods": [
+        "upbeat",
+        "playful"
+      ],
+      "genres": [
+        "electronic",
+        "indie"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC0-1.0",
       "attribution_required": false,
-      "attribution_text": "LRT Doors — Komuter Keys (CC0 1.0)",
+      "attribution_text": "LRT Doors \u2014 Komuter Keys (CC0 1.0)",
       "source": "seed",
-      "tags": ["city", "fast-cut"]
-    },
-    {
-      "id": "seed_handpan_travel",
-      "title": "Jetty Handpan",
-      "artist": "Silent Frame",
-      "duration_sec": 136,
-      "bpm": 80,
-      "energy": 0.36,
-      "moods": ["calm", "adventurous", "warm"],
-      "genres": ["world", "folk"],
-      "instrumental": true,
-      "loopable": true,
-      "license": "CC0-1.0",
-      "attribution_required": false,
-      "attribution_text": "Jetty Handpan — Silent Frame (CC0 1.0)",
-      "source": "seed",
-      "tags": ["travel", "melodic"]
+      "tags": [
+        "city",
+        "fast-cut"
+      ]
     },
     {
       "id": "seed_retail_stinger",
@@ -537,15 +461,160 @@
       "duration_sec": 18,
       "bpm": 120,
       "energy": 0.7,
-      "moods": ["clean", "upbeat"],
-      "genres": ["stinger", "electronic"],
+      "moods": [
+        "clean",
+        "upbeat"
+      ],
+      "genres": [
+        "stinger",
+        "electronic"
+      ],
       "instrumental": true,
       "loopable": true,
       "license": "CC-BY-4.0",
       "attribution_required": true,
       "attribution_text": "\"Add to Cart\" by Shelf Studio (CC BY 4.0)",
       "source": "seed",
-      "tags": ["product", "loop", "short"]
+      "tags": [
+        "product",
+        "loop",
+        "short"
+      ]
+    },
+    {
+      "id": "seed_sports_break",
+      "title": "Sideline Clap",
+      "artist": "Field Kit",
+      "duration_sec": 40,
+      "bpm": 132,
+      "energy": 0.84,
+      "moods": [
+        "hype",
+        "upbeat"
+      ],
+      "genres": [
+        "sports",
+        "electronic"
+      ],
+      "instrumental": true,
+      "loopable": true,
+      "license": "CC-BY-4.0",
+      "attribution_required": true,
+      "attribution_text": "\"Sideline Clap\" by Field Kit (CC BY 4.0)",
+      "source": "seed",
+      "tags": [
+        "sports",
+        "stinger"
+      ]
+    },
+    {
+      "id": "seed_handpan_travel",
+      "title": "Jetty Handpan",
+      "artist": "Silent Frame",
+      "duration_sec": 136,
+      "bpm": 80,
+      "energy": 0.36,
+      "moods": [
+        "calm",
+        "adventurous",
+        "warm"
+      ],
+      "genres": [
+        "world",
+        "folk"
+      ],
+      "instrumental": true,
+      "loopable": true,
+      "license": "CC0-1.0",
+      "attribution_required": false,
+      "attribution_text": "Jetty Handpan \u2014 Silent Frame (CC0 1.0)",
+      "source": "seed",
+      "tags": [
+        "travel",
+        "melodic"
+      ]
+    },
+    {
+      "id": "seed_afro_shuffle",
+      "title": "Pasar Malam Shuffle",
+      "artist": "Night Market Band",
+      "duration_sec": 110,
+      "bpm": 114,
+      "energy": 0.68,
+      "moods": [
+        "playful",
+        "upbeat",
+        "tropical"
+      ],
+      "genres": [
+        "afrobeat",
+        "world",
+        "indie"
+      ],
+      "instrumental": true,
+      "loopable": true,
+      "license": "CC-BY-4.0",
+      "attribution_required": true,
+      "attribution_text": "\"Pasar Malam Shuffle\" by Night Market Band (CC BY 4.0)",
+      "source": "seed",
+      "tags": [
+        "sea",
+        "percussion",
+        "lifestyle"
+      ]
+    },
+    {
+      "id": "seed_vocal_pop",
+      "title": "Chorus in the Kitchen",
+      "artist": "Demo Vocalist",
+      "duration_sec": 132,
+      "bpm": 116,
+      "energy": 0.7,
+      "moods": [
+        "playful",
+        "upbeat",
+        "warm"
+      ],
+      "genres": [
+        "pop",
+        "indie"
+      ],
+      "instrumental": false,
+      "loopable": false,
+      "license": "CC-BY-4.0",
+      "attribution_required": true,
+      "attribution_text": "\"Chorus in the Kitchen\" by Demo Vocalist (CC BY 4.0)",
+      "source": "seed",
+      "tags": [
+        "vocals",
+        "lyrics"
+      ]
+    },
+    {
+      "id": "seed_nc_ballad",
+      "title": "Weekend Noncommercial",
+      "artist": "Hobbyist",
+      "duration_sec": 160,
+      "bpm": 78,
+      "energy": 0.35,
+      "moods": [
+        "sad",
+        "warm",
+        "calm"
+      ],
+      "genres": [
+        "ballad",
+        "piano"
+      ],
+      "instrumental": true,
+      "loopable": true,
+      "license": "CC-BY-NC-4.0",
+      "attribution_required": true,
+      "attribution_text": "\"Weekend Noncommercial\" by Hobbyist (CC BY-NC 4.0) \u2014 not for ads",
+      "source": "seed",
+      "tags": [
+        "noncommercial"
+      ]
     }
   ]
 }

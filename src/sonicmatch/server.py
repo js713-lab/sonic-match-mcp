@@ -37,6 +37,7 @@ Rules:
 - Prefer instrumental tracks when speech_coverage > 0.25.
 - Recommend a 12–20s hook window, not the whole song.
 - Always surface license + attribution. Track licenses ≠ this repo's MIT license.
+- CC-BY-NC is never auto-recommended. For ads/shops use user-owned Artlist/Epidemic JSON.
 - Never scrape or pretend to have Instagram / TikTok / YouTube Music official libraries.
 - Never claim a track is an official platform sticker or Content-ID-safe.
 - Never invent "trending" audio. That graph is closed.

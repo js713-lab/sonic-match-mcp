@@ -98,8 +98,43 @@ def test_trap_avoided_for_lifestyle():
 def test_nc_license_not_ok_for_platform():
     nc = Track(id="n", title="nc", license="CC-BY-NC-4.0", source="seed")
     cc0 = Track(id="z", title="z", license="CC0-1.0", source="seed")
+    lib = Track(id="l", title="owned", license="Epidemic Sound personal license", source="library")
+    gen = Track(id="g", title="sine", license="generated-demo", source="generated")
     assert license_ok(nc, "instagram_reel") is False
     assert license_ok(cc0, "instagram_reel") is True
+    assert license_ok(lib, "instagram_reel") is True
+    assert license_ok(gen, "instagram_reel") is False
+
+
+def test_rank_drops_nc_instead_of_downranking():
+    profile = _profile()
+    nc = Track(
+        id="n",
+        title="Weekend Noncommercial",
+        bpm=78,
+        energy=0.55,
+        moods=["warm", "playful"],
+        genres=["piano"],
+        instrumental=True,
+        license="CC-BY-NC-4.0",
+        source="seed",
+        duration_sec=160,
+    )
+    cc0 = Track(
+        id="z",
+        title="Latte",
+        bpm=108,
+        energy=0.55,
+        moods=["warm", "playful"],
+        genres=["acoustic"],
+        instrumental=True,
+        license="CC0-1.0",
+        source="seed",
+        duration_sec=120,
+    )
+    recs = rank_tracks([nc, cc0], profile, instrumental_only=True, max_results=5)
+    assert [r.track.id for r in recs] == ["z"]
+    assert all(r.license_ok_for_platform for r in recs)
 
 
 def test_hook_slice_is_short():

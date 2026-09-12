@@ -3,7 +3,7 @@
   "name": "sonicmatch-mcp",
   "display_name": "Sonicmatch",
   "version": "0.2.0",
-  "description": "Analyze video mood and pace, then recommend license-safe BGM with a mix spec.",
+  "description": "Pick BGM that doesn't fight the voiceover. Watches the video, returns a hook + ffmpeg ducking spec, prints the license.",
   "author": {
     "name": "js713-lab",
     "url": "https://github.com/js713-lab/sonic-match-mcp"

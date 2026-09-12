@@ -1,4 +1,8 @@
-"""Always-available seed catalog (CC0 / CC-BY instrumentals you control)."""
+"""Always-available seed catalog.
+
+Twenty Reel-editor beds (CC0 / CC-BY) plus two fixtures: a vocal track and a
+CC-BY-NC track. Non-commercial rows are searchable and never auto-recommended.
+"""
 
 from __future__ import annotations
 

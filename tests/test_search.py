@@ -67,3 +67,22 @@ def test_get_unknown_track(settings):
     result = get_track("nope")
     assert result["ok"] is False
     assert result["code"] == "NOT_FOUND"
+
+
+def test_recommend_never_returns_nc_for_reel(settings):
+    configure(settings)
+    result = recommend_bgm(
+        mood="warm",
+        genre="acoustic",
+        instrumental_only=True,
+        max_results=7,
+        catalog="seed",
+        platform_hint="instagram_reel",
+    )
+    assert result["ok"] is True
+    recs = result["recommendations"]
+    assert recs
+    licenses = [r["track"]["license"].lower() for r in recs]
+    assert all("nc" not in lic and "noncommercial" not in lic for lic in licenses)
+    assert all(r["license_ok_for_platform"] for r in recs)
+    assert all(r["track"]["id"] != "seed_nc_ballad" for r in recs)

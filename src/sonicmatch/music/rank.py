@@ -73,13 +73,23 @@ def duration_score(track: Track, video_dur: float) -> float:
 
 
 def license_ok(track: Track, platform_hint: str) -> bool:
+    """Whether auto-recommend may return this track.
+
+    CC-BY-NC is never ok for ads / shops / Reels. User-owned library JSON is
+    trusted only as "you already licensed it" — we do not scrape paid catalogs.
+    Seed rows must carry a commercial-ok license string; we do not special-case
+    source=seed.
+    """
+    _ = platform_hint  # reserved; NC is never ok on any platform we name
     lic = _norm(track.license)
     if any(tok in lic for tok in NONCOMMERCIAL):
         return False
+    if track.source == "generated":
+        return False
+    if track.source == "library":
+        return True
     if any(tok in lic for tok in COMMERCIAL_OK):
         # Still NOT "IG official sticker" — just "license-safe to use with attribution".
-        return True
-    if track.source == "seed":
         return True
     return False
 
@@ -200,6 +210,8 @@ def rank_tracks(
             genre=genre,
             mood=mood,
         )
+        if not ok:
+            continue
         ducking: str = "recommended" if profile.speech_coverage > 0.25 else "off"
         scored.append(
             Recommendation(

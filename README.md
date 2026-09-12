@@ -6,11 +6,20 @@
   <img src="docs/banner.jpg" alt="Sonicmatch — video in, license-safe BGM out. Ingest, Analyze, Match, Mix." width="100%">
 </p>
 
-Open-source **MCP server** that recommends **license-safe background music** the way Instagram Stories / Reels *feel*: drop footage, get a shortlist that already matches energy, then pick a 15s hook.
+Your agent picks a song that doesn't fight the voiceover.
+
+Drop footage. Get a shortlist that matches the picture, a 12–20s hook, and an ffmpeg ducking spec — with the license printed on every row.
 
 Source: [js713-lab/sonic-match-mcp](https://github.com/js713-lab/sonic-match-mcp). The installable package and CLI are named `sonicmatch-mcp`.
 
-This is **infrastructure for editors and agents**, not another music chatbot.
+Video-to-BGM already exists. The wedge is not “I also match music”:
+
+- it watches the **footage**, not the script
+- it returns a **hook window** + ffmpeg ducking spec
+- it is **agent-native**
+- it **prints the license** instead of lying
+
+Catalog quality will kill or save this. More tools will not.
 
 ```
 Video or URL in
@@ -37,7 +46,9 @@ Do **not** treat this as “script in → YouTube Music search out.” That alre
 - **Every track has its own license.** It is printed on every recommendation.
 - Nothing here is an official Instagram sticker, TikTok Commercial Music Library track, or YouTube Audio Library API result.
 - Do not recommend commercial pop unless the adapter is explicitly a **user-owned licensed library**.
-- CC-BY still needs attribution. CC-BY-NC is **not** ok for ads / shops. Content ID can still hit you if you point at the wrong source.
+- CC-BY still needs attribution. CC-BY-NC is **not** ok for ads / shops. Non-commercial tracks are **never auto-recommended**.
+- For ads / shops, wire a **user-owned** Artlist / Epidemic JSON (`examples/user_library.example.json`). Do not scrape those sites.
+- Content ID can still hit you if you point at the wrong source. A CC label is not a waiver.
 
 ## Quick start
 
@@ -68,7 +79,7 @@ uv venv && uv pip install -e ".[dev]"
 uv run sonicmatch-mcp
 ```
 
-v0.2 works **offline-ish** with the checked-in seed catalog. Gemini, Jamendo, and Freesound are optional and degrade with a note in the tool response.
+v0.2 works **offline-ish** with a 20-track seed catalog aimed at Reel editors (cafe, product, talking-head, travel, food, fashion, event). Gemini, Jamendo, and Freesound are optional and degrade with a note in the tool response. Seed rows have no hosted audio on purpose — `preview_mix` synthesizes a demo bed. For real ads, point `SONICMATCH_LIBRARY_PATH` / `EPIDEMIC_LIBRARY_PATH` / `ARTLIST_LIBRARY_PATH` at JSON you already licensed.
 
 ```bash
 # tests (generates tiny color mp4s with ffmpeg)
@@ -204,13 +215,13 @@ Pluggable, license-first. v0 ships:
 
 | Adapter | When | License reality |
 |---|---|---|
-| **Seed catalog** (`data/seed_tracks.json`) | always | CC0 / CC-BY you control |
+| **Seed catalog** (`data/seed_tracks.json`) | always | 20 CC0 / CC-BY Reel beds + a vocal fixture + a CC-BY-NC fixture (NC is never auto-recommended) |
 | **Jamendo** | `JAMENDO_CLIENT_ID` | CC, check commercial |
 | **Freesound** | `FREESOUND_API_KEY` | CC, good for beds/loops not songs |
 | **User library JSON** | `SONICMATCH_LIBRARY_PATH` / `EPIDEMIC_LIBRARY_PATH` / `ARTLIST_LIBRARY_PATH` | **you** already licensed it; we do not scrape paid sites |
 | **Generate** | `generate_bed` | always `source=generated`; local sine demo unless you swap a real model |
 
-Ranking (weighted): mood/energy → instrumental if speech → duration/loop → BPM vs cut rate → license fit → tag embedding cosine → user constraints.
+Ranking (weighted): mood/energy → instrumental if speech → duration/loop → BPM vs cut rate → license fit → tag embedding cosine → user constraints. `recommend_bgm` drops non-commercial and generated tracks instead of downranking them.
 
 Tracks are indexed in SQLite (`~/.cache/sonicmatch-mcp/db/tracks.sqlite`) with a 24-d tag embedding. If `lancedb` is installed (`pip install 'sonicmatch-mcp[embeddings]'`), vectors are also upserted there.
 
@@ -226,22 +237,26 @@ docker run --rm -p 127.0.0.1:8765:8765 -v sonic-cache:/data/cache sonicmatch-mcp
 
 ## Roadmap
 
+Catalog > new tools.
+
 - [x] Freesound adapter (loops / beds)
 - [x] Tag embeddings in SQLite (+ optional LanceDB extra)
 - [x] Epidemic Sound / Artlist as **user-owned JSON** plugins (no scrape)
 - [x] Beat-grid vs scene-cut suggestions (EDL-ish `suggest_cuts`)
 - [x] MCP registry listing (`server.json`)
 - [x] Generate tool, marked `source=generated` (local demo; swap a real model at your own legal risk)
-- [ ] Real CLAP audio embeddings
 - [x] Official MCP registry listing via GitHub Release MCPB (see [PUBLISH.md](PUBLISH.md))
+- [x] Non-commercial licenses excluded from auto `recommend_bgm`
+- [ ] 20 seed beds a Reel editor would actually keep, with audio you host
+- [ ] User-owned Artlist / Epidemic JSON as the default path for ads
+- [ ] Real CLAP audio embeddings
 - [ ] PyPI release
-- [ ] Beat-grid auto-recut of the video itself (not just EDL hints)
 
 ## Why this can be a good open-source project
 
-**Yes if** you nail: (1) video-native analysis, (2) license honesty on every row, (3) editor-shaped output (hook in/out, ducking, mix spec).
+**Yes if** you nail: (1) video-native analysis, (2) license honesty on every row, (3) editor-shaped output (hook in/out, ducking, mix spec), (4) a catalog someone would keep.
 
-**No if** you only wrap YouTube Music search. That is a weekend clone and a copyright magnet.
+**No if** you only wrap YouTube Music search, or if the first five recs sound like leftover stock beds.
 
 Day-1 risk gates (enforced in code, not slogans):
 
