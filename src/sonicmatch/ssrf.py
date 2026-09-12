@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import ipaddress
 import socket
+from pathlib import Path
 from urllib.parse import urlparse
+
+import httpx
 
 from sonicmatch.errors import SonicError
 
@@ -155,3 +158,67 @@ def content_type_looks_like_video(content_type: str | None) -> bool:
         return False
     ct = content_type.split(";", 1)[0].strip().lower()
     return any(ct.startswith(prefix) or ct == prefix.rstrip("/") for prefix in VIDEO_CONTENT_TYPES)
+
+
+def join_https_redirect(current: str, location: str) -> str:
+    """Join a Location header and re-run the SSRF checks on the next hop."""
+    nxt = str(httpx.URL(current).join(location))
+    parse_source_url(nxt)
+    return nxt
+
+
+def fetch_https_capped(
+    url: str,
+    dest: Path,
+    *,
+    max_bytes: int,
+    user_agent: str = "sonicmatch-mcp/0.2",
+    timeout: httpx.Timeout | None = None,
+) -> Path:
+    """GET an HTTPS URL to disk. Re-check every redirect hop. Cap size.
+
+    Does not follow redirects automatically — each Location is parsed and
+    resolved so a public URL cannot bounce into loopback/private space.
+    """
+    parse_source_url(url)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    t = timeout or httpx.Timeout(30.0, read=120.0)
+    with httpx.Client(timeout=t, follow_redirects=False) as client:
+        current = url
+        for _ in range(5):
+            _, host, _ = parse_source_url(current)
+            resolve_and_check_host(host)
+            with client.stream(
+                "GET", current, headers={"User-Agent": user_agent}
+            ) as resp:
+                if resp.status_code in {301, 302, 303, 307, 308}:
+                    nxt = resp.headers.get("location")
+                    if not nxt:
+                        raise SonicError("DOWNLOAD_FAILED", "Redirect missing Location.")
+                    current = join_https_redirect(current, nxt)
+                    continue
+                if resp.status_code >= 400:
+                    raise SonicError(
+                        "DOWNLOAD_FAILED",
+                        f"HTTP {resp.status_code} fetching {current}.",
+                    )
+                cl = resp.headers.get("content-length")
+                if cl and int(cl) > max_bytes:
+                    raise SonicError(
+                        "TOO_LARGE",
+                        f"Remote file is {int(cl)} bytes; max is {max_bytes} bytes.",
+                    )
+                written = 0
+                with dest.open("wb") as fh:
+                    for chunk in resp.iter_bytes(1024 * 64):
+                        written += len(chunk)
+                        if written > max_bytes:
+                            fh.close()
+                            dest.unlink(missing_ok=True)
+                            raise SonicError(
+                                "TOO_LARGE",
+                                f"Download exceeded {max_bytes} bytes.",
+                            )
+                        fh.write(chunk)
+                return dest
+        raise SonicError("DOWNLOAD_FAILED", "Too many redirects.")

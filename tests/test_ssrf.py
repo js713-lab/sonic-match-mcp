@@ -3,7 +3,12 @@ from __future__ import annotations
 import pytest
 
 from sonicmatch.errors import SonicError
-from sonicmatch.ssrf import classify_url, parse_source_url, resolve_and_check_host
+from sonicmatch.ssrf import (
+    classify_url,
+    join_https_redirect,
+    parse_source_url,
+    resolve_and_check_host,
+)
 
 
 def test_reject_loopback_literal():
@@ -50,3 +55,24 @@ def test_youtube_classified_platform():
 def test_direct_mp4_classified():
     # 1.1.1.1 is public; this only classifies, it does not fetch.
     assert classify_url("https://example.com/media/clip.mp4") == "direct"
+
+
+def test_redirect_to_loopback_rejected():
+    with pytest.raises(SonicError) as exc:
+        join_https_redirect(
+            "https://example.com/clip.mp4",
+            "https://127.0.0.1/secret.mp4",
+        )
+    assert exc.value.code == "SSRF_REJECTED"
+
+
+def test_redirect_to_file_rejected():
+    with pytest.raises(SonicError) as exc:
+        join_https_redirect("https://example.com/clip.mp4", "file:///etc/passwd")
+    assert exc.value.code == "SSRF_REJECTED"
+
+
+def test_redirect_to_private_ip_rejected():
+    with pytest.raises(SonicError) as exc:
+        join_https_redirect("https://example.com/a.wav", "https://10.0.0.5/bed.wav")
+    assert exc.value.code == "SSRF_REJECTED"

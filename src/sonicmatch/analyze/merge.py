@@ -8,7 +8,7 @@ from sonicmatch.config import Settings, load_settings
 from sonicmatch.analyze.gemini import analyze_gemini
 from sonicmatch.analyze.local import analyze_local
 from sonicmatch.errors import SonicError
-from sonicmatch.ingest import load_asset, save_asset
+from sonicmatch.ingest import load_asset, sanitize_asset_id, save_asset
 from sonicmatch.models import VideoSonicProfile
 
 
@@ -20,7 +20,11 @@ def _save_profile(settings: Settings, profile: VideoSonicProfile) -> None:
 
 def load_profile(asset_id: str, settings: Settings | None = None) -> VideoSonicProfile | None:
     settings = settings or load_settings()
-    path = settings.cache_dir / "assets" / asset_id / "profile.json"
+    try:
+        safe = sanitize_asset_id(asset_id)
+    except SonicError:
+        return None
+    path = settings.cache_dir / "assets" / safe / "profile.json"
     if not path.exists():
         return None
     return VideoSonicProfile.model_validate_json(path.read_text(encoding="utf-8"))

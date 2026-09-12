@@ -2,6 +2,10 @@
 
 <!-- mcp-name: io.github.js713-lab/sonicmatch-mcp -->
 
+<p align="center">
+  <img src="docs/banner.jpg" alt="Sonicmatch — video in, license-safe BGM out. Ingest, Analyze, Match, Mix." width="100%">
+</p>
+
 Open-source **MCP server** that recommends **license-safe background music** the way Instagram Stories / Reels *feel*: drop footage, get a shortlist that already matches energy, then pick a 15s hook.
 
 Source: [js713-lab/sonic-match-mcp](https://github.com/js713-lab/sonic-match-mcp). The installable package and CLI are named `sonicmatch-mcp`.
@@ -114,6 +118,8 @@ Copy-paste configs live in `examples/claude_desktop.mcp.json` and `examples/curs
 
 HTTP editors can point at `http://127.0.0.1:8765/mcp` after `sonicmatch-mcp --http`.
 
+`--http` has no authentication. Keep it on loopback. The Docker image binds `0.0.0.0` so the container port works — do not publish that port to the internet. See [SECURITY.md](SECURITY.md).
+
 ## Architecture
 
 ```mermaid
@@ -214,7 +220,8 @@ Seed tracks have no remote audio files on purpose (you should host files you act
 
 ```bash
 docker build -t sonicmatch-mcp .
-docker run --rm -p 8765:8765 -v sonic-cache:/data/cache sonicmatch-mcp
+# Loopback-only publish. The process inside the container has no HTTP auth.
+docker run --rm -p 127.0.0.1:8765:8765 -v sonic-cache:/data/cache sonicmatch-mcp
 ```
 
 ## Roadmap
@@ -249,3 +256,7 @@ Day-1 risk gates (enforced in code, not slogans):
 ## Use cases
 
 IG Reel / Story · Shopee product clip · YouTube Shorts agent · CapCut/Premiere companion · campus recap · podcast clipper · travel-vlog batch · brand-kit lock (BPM + no vocals) · silent-film / accessibility · multi-agent studio.
+
+## License
+
+MIT. Track licenses are independent of the repo license. Security reports: [SECURITY.md](SECURITY.md).

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Any
-import httpx
 
 from sonicmatch.config import Settings, load_settings
 from sonicmatch.errors import SonicError
@@ -21,14 +21,18 @@ from sonicmatch.ffmpeg_util import (
 )
 from sonicmatch.models import VideoAsset
 from sonicmatch.policy import YTDLP_TOS_WARNING, ytdlp_extractor_failed
-from sonicmatch.ssrf import (
-    classify_url,
-    content_type_looks_like_video,
-    parse_source_url,
-    resolve_and_check_host,
-)
+from sonicmatch.ssrf import classify_url, fetch_https_capped, parse_source_url
 
 _ASSET_INDEX = "index.json"
+_ASSET_ID_RE = re.compile(r"^[0-9a-f]{8,32}$")
+
+
+def sanitize_asset_id(asset_id: str) -> str:
+    """Reject path traversal and non-hex ids before joining onto the cache dir."""
+    value = (asset_id or "").strip().lower()
+    if not _ASSET_ID_RE.fullmatch(value):
+        raise SonicError("ASSET_NOT_FOUND", f"Unknown asset_id: {asset_id}")
+    return value
 
 
 def _hash_id(*parts: str) -> str:
@@ -52,7 +56,8 @@ def save_asset(settings: Settings, asset: VideoAsset) -> None:
 
 def load_asset(asset_id: str, settings: Settings | None = None) -> VideoAsset:
     settings = settings or load_settings()
-    path = settings.cache_dir / "assets" / asset_id / _ASSET_INDEX
+    safe = sanitize_asset_id(asset_id)
+    path = settings.cache_dir / "assets" / safe / _ASSET_INDEX
     if not path.exists():
         raise SonicError("ASSET_NOT_FOUND", f"Unknown asset_id: {asset_id}")
     return VideoAsset.model_validate_json(path.read_text(encoding="utf-8"))
@@ -108,53 +113,7 @@ def _copy_or_link(src: Path, dest: Path) -> Path:
 def _download_direct(url: str, dest: Path, settings: Settings) -> Path:
     parse_source_url(url)
     max_bytes = settings.max_download_mb * 1024 * 1024
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    timeout = httpx.Timeout(30.0, read=120.0)
-    with httpx.Client(timeout=timeout, follow_redirects=False) as client:
-        current = url
-        for _ in range(5):
-            _, host, _ = parse_source_url(current)
-            resolve_and_check_host(host)
-            resp = client.head(current, headers={"User-Agent": "sonicmatch-mcp/0.1"})
-            if resp.status_code in {301, 302, 303, 307, 308}:
-                nxt = resp.headers.get("location")
-                if not nxt:
-                    break
-                current = str(httpx.URL(current).join(nxt))
-                continue
-            break
-        parse_source_url(current)
-        with client.stream("GET", current, headers={"User-Agent": "sonicmatch-mcp/0.1"}) as resp:
-            if resp.status_code >= 400:
-                raise SonicError("DOWNLOAD_FAILED", f"HTTP {resp.status_code} fetching video.")
-            hops = [current] + [str(u) for u in resp.history]
-            for hop in hops:
-                if hop.startswith("http"):
-                    parse_source_url(hop)
-            ct = resp.headers.get("content-type", "")
-            cl = resp.headers.get("content-length")
-            if cl and int(cl) > max_bytes:
-                raise SonicError(
-                    "TOO_LARGE",
-                    f"Remote file is {int(cl)} bytes; max is {settings.max_download_mb} MB.",
-                )
-            if not content_type_looks_like_video(ct) and not classify_url(url) == "direct":
-                raise SonicError(
-                    "NOT_VIDEO",
-                    f"Remote content-type {ct!r} does not look like video.",
-                )
-            written = 0
-            with dest.open("wb") as fh:
-                for chunk in resp.iter_bytes(1024 * 64):
-                    written += len(chunk)
-                    if written > max_bytes:
-                        fh.close()
-                        dest.unlink(missing_ok=True)
-                        raise SonicError(
-                            "TOO_LARGE",
-                            f"Download exceeded {settings.max_download_mb} MB.",
-                        )
-                    fh.write(chunk)
+    fetch_https_capped(url, dest, max_bytes=max_bytes)
     return dest
 
 

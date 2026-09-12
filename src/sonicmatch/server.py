@@ -339,6 +339,14 @@ def main(argv: list[str] | None = None) -> None:
     if args.http:
         host = args.host or settings.http_host
         port = args.port or settings.http_port
+        if host not in {"127.0.0.1", "localhost", "::1"}:
+            LOGGER.warning(
+                "HTTP MCP has no authentication. Binding %s:%s lets anyone who "
+                "can reach that port ingest local files and mix. Prefer 127.0.0.1 "
+                "unless you put a reverse proxy in front.",
+                host,
+                port,
+            )
         LOGGER.info("sonicmatch-mcp %s streamable-http on %s:%s", __version__, host, port)
         mcp.run(transport="streamable-http", host=host, port=port)
     else:

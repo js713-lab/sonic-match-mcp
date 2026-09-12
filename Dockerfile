@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir .
 ENV SONICMATCH_CACHE_DIR=/data/cache
 VOLUME ["/data/cache"]
 
+# HTTP MCP has no auth. Do not publish this port to the public internet.
 EXPOSE 8765
 ENTRYPOINT ["sonicmatch-mcp"]
 CMD ["--http", "--host", "0.0.0.0", "--port", "8765"]

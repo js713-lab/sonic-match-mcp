@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from sonicmatch.errors import SonicError
-from sonicmatch.ingest import ingest_video
+from sonicmatch.ingest import ingest_video, load_asset, sanitize_asset_id
 from sonicmatch.ssrf import parse_source_url
 from tests.conftest import make_color_mp4
 
@@ -36,6 +36,16 @@ def test_ingest_rejects_loopback_url(settings):
     assert exc.value.code == "SSRF_REJECTED"
     with pytest.raises(SonicError):
         parse_source_url("http://127.0.0.1/x.mp4")
+
+
+def test_asset_id_rejects_path_traversal(settings):
+    with pytest.raises(SonicError) as exc:
+        sanitize_asset_id("../etc/passwd")
+    assert exc.value.code == "ASSET_NOT_FOUND"
+    with pytest.raises(SonicError):
+        load_asset("../../.env", settings=settings)
+    with pytest.raises(SonicError):
+        sanitize_asset_id("not-hex")
 
 
 def test_silent_mp4_has_no_audio(tmp_path: Path, settings, ffmpeg_ok: bool):

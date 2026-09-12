@@ -5,15 +5,13 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-import httpx
-
 from sonicmatch.config import Settings, load_settings
 from sonicmatch.errors import SonicError
 from sonicmatch.ffmpeg_util import quote_ffmpeg_path, run, synthesize_bed, which_ffmpeg
 from sonicmatch.ingest import load_asset
 from sonicmatch.models import MixResult, Recommendation, Track, VideoSonicProfile
 from sonicmatch.music.rank import hook_slice
-from sonicmatch.ssrf import parse_source_url
+from sonicmatch.ssrf import fetch_https_capped, parse_source_url
 
 
 _AUDIO_SUFFIXES = {".wav", ".mp3", ".m4a", ".aac", ".ogg", ".flac", ".opus"}
@@ -38,10 +36,8 @@ def _track_audio(
         try:
             parse_source_url(url)
             dest.parent.mkdir(parents=True, exist_ok=True)
-            with httpx.Client(timeout=30.0, follow_redirects=True) as client:
-                resp = client.get(url, headers={"User-Agent": "sonicmatch-mcp/0.1"})
-                resp.raise_for_status()
-                dest.write_bytes(resp.content)
+            max_bytes = settings.max_download_mb * 1024 * 1024
+            fetch_https_capped(url, dest, max_bytes=max_bytes)
             notes.append(f"downloaded track audio from {track.source}")
             return dest, notes
         except Exception as exc:
@@ -78,6 +74,8 @@ def preview_mix(
     """
     settings = settings or load_settings()
     which_ffmpeg()
+    bgm_db = max(-60.0, min(float(bgm_db), 0.0))
+    voice_db = max(-60.0, min(float(voice_db), 0.0))
     asset = load_asset(asset_id, settings)
     video = asset.local_path
     if asset.proxy_path and Path(asset.proxy_path).exists() and asset.has_audio:
@@ -321,6 +319,8 @@ def export_mix_spec(
             settings=settings,
         )
     settings = settings or load_settings()
+    bgm_db = max(-60.0, min(float(bgm_db), 0.0))
+    voice_db = max(-60.0, min(float(voice_db), 0.0))
     asset = load_asset(asset_id, settings)
     duration = float(asset.duration_sec)
     in_out = hook_slice(track, duration, profile.energy_mean if profile else 0.55)
