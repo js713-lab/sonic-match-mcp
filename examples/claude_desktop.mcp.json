@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "sonicmatch": {
-      "command": "/absolute/path/to/sonicmatch-mcp/.venv/bin/sonicmatch-mcp",
+      "command": "/absolute/path/to/sonic-match-mcp/.venv/bin/sonicmatch-mcp",
       "args": [],
       "env": {
         "GEMINI_API_KEY": "",

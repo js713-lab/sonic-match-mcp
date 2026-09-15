@@ -1,16 +1,18 @@
-# sonicmatch-mcp
+# Sonicmatch
 
 <!-- mcp-name: io.github.js713-lab/sonicmatch-mcp -->
+
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/js713-lab/sonic-match-mcp?style=flat)](https://github.com/js713-lab/sonic-match-mcp/stargazers)
+
+**Video-native MCP server for license-safe BGM.** Watches the footage — not the script — and returns a shortlist, a 12–20s hook, and an ffmpeg ducking spec.
 
 <p align="center">
   <img src="docs/banner.jpg" alt="Sonicmatch — video in, license-safe BGM out. Ingest, Analyze, Match, Mix." width="100%">
 </p>
 
-Your agent picks a song that doesn't fight the voiceover.
-
-Drop footage. Get a shortlist that matches the picture, a 12–20s hook, and an ffmpeg ducking spec — with the license printed on every row.
-
-Source: [js713-lab/sonic-match-mcp](https://github.com/js713-lab/sonic-match-mcp). The installable package and CLI are named `sonicmatch-mcp`.
+Package / CLI: [`sonicmatch-mcp`](https://github.com/js713-lab/sonic-match-mcp). A [Model Context Protocol](https://modelcontextprotocol.io) server for Claude Desktop, Cursor, and other MCP clients. Drop an Instagram Reel, YouTube Short, or TikTok-style clip. Get royalty-free / Creative Commons matches with the license printed on every row.
 
 Video-to-BGM already exists. The wedge is not “I also match music”:
 
@@ -50,14 +52,30 @@ Do **not** treat this as “script in → YouTube Music search out.” That alre
 - For ads / shops, wire a **user-owned** Artlist / Epidemic JSON (`examples/user_library.example.json`). Do not scrape those sites.
 - Content ID can still hit you if you point at the wrong source. A CC label is not a waiver.
 
+## Demo
+
+> I dropped `./clip.mp4`. Analyze it for an Instagram Reel and recommend 5 instrumental BGMs. Then mix the top pick with ducking and give me the ffmpeg command.
+
+That prompt is the product. Install below, wire Claude Desktop or Cursor, paste it.
+
 ## Quick start
 
-Requires Python 3.10+ and `ffmpeg` / `ffprobe` on PATH. `yt-dlp` is optional and **off by default** (`SONICMATCH_ALLOW_YTDLP=0`) because platform extractors break and may violate ToS. Prefer a local file.
+Requires **Python 3.10+** and `ffmpeg` / `ffprobe` on PATH. `yt-dlp` is optional and **off by default** (`SONICMATCH_ALLOW_YTDLP=0`) because platform extractors break and may violate ToS. Prefer a local file.
 
 ```bash
 pip install git+https://github.com/js713-lab/sonic-match-mcp.git
+sonicmatch-mcp
+```
 
-# or from a clone
+With [uv](https://github.com/astral-sh/uv), no clone:
+
+```bash
+uvx --from git+https://github.com/js713-lab/sonic-match-mcp.git sonicmatch-mcp
+```
+
+From a clone (editable + tests):
+
+```bash
 git clone https://github.com/js713-lab/sonic-match-mcp.git
 cd sonic-match-mcp
 python3 -m venv .venv
@@ -72,9 +90,8 @@ sonicmatch-mcp
 sonicmatch-mcp --http --port 8765
 ```
 
-With [uv](https://github.com/astral-sh/uv):
-
 ```bash
+# same clone, uv
 uv venv && uv pip install -e ".[dev]"
 uv run sonicmatch-mcp
 ```
@@ -82,23 +99,61 @@ uv run sonicmatch-mcp
 v0.2 works **offline-ish** with a 20-track seed catalog aimed at Reel editors (cafe, product, talking-head, travel, food, fashion, event). Gemini, Jamendo, and Freesound are optional and degrade with a note in the tool response. Seed rows have no hosted audio on purpose — `preview_mix` synthesizes a demo bed. For real ads, point `SONICMATCH_LIBRARY_PATH` / `EPIDEMIC_LIBRARY_PATH` / `ARTLIST_LIBRARY_PATH` at JSON you already licensed.
 
 ```bash
-# tests (generates tiny color mp4s with ffmpeg)
-pytest
+pytest   # generates tiny color mp4s with ffmpeg
 ```
 
-### Example agent prompt
+Not on PyPI yet. Install from git.
 
-> I dropped `./clip.mp4`. Analyze it for an Instagram Reel and recommend 5 instrumental BGMs. Then mix the top pick with ducking and give me the ffmpeg command.
+## Features
+
+- **Watches the picture.** Gemini video understanding when `GEMINI_API_KEY` is set; otherwise local ffmpeg / audio heuristics (optional Whisper, PySceneDetect, librosa).
+- **License on every row.** CC / royalty-free / user-owned library. Non-commercial tracks are never auto-recommended. Generated beds stay out of auto recs.
+- **Editor-shaped output.** 12–20s hook in/out, speech ducking, ffmpeg recipe, mix spec for CapCut / Premiere / DaVinci / your agent.
+- **Agent-native MCP.** stdio for Claude Desktop and Cursor; streamable HTTP for web editors. Never ships raw multi-MB video through the payload — you get an `asset_id`.
+- **Works without API keys.** 20-track seed catalog for Reels. Optional Jamendo, Freesound, and user-owned Artlist / Epidemic JSON.
+- **Cuts on the beat.** `suggest_cuts` snaps scene cuts to a BPM grid and returns EDL-ish intro / peak / outro.
+- **Brand lock.** Save BPM / mood / no-vocals kits and pass `brand_kit=…` into `recommend_bgm`.
+- **Series, not one-offs.** `analyze_batch` (max 20) clusters mood and returns one shared mini-playlist.
+- **Honest about closed graphs.** No fake “trending audio,” official IG stickers, or Content-ID-safe stamps. yt-dlp platform ingest is opt-in.
+
+## Tools
+
+| Tool | What it does |
+|---|---|
+| `status` | ffmpeg / keys / seed count / day-1 risk gates |
+| `ingest_video` | Local path or HTTPS URL → `asset_id` (never video bytes). Platform URLs need `SONICMATCH_ALLOW_YTDLP=1` |
+| `analyze_video_music` | Mood, energy curve, speech, scenes, hook window, BPM, search queries |
+| `recommend_bgm` | 3–7 ranked tracks + why + license + hook in/out |
+| `search_music` | Free-text / BPM / mood over seed + optional catalogs |
+| `get_track` | One track’s metadata, license, attribution, URLs |
+| `preview_mix` | Hook trim, loop, optional ducking → preview files + ffmpeg + mix spec |
+| `export_mix_spec` | Mix spec + ffmpeg + attribution (no render unless `render=true`) |
+| `suggest_cuts` | Beat grid, snapped scene cuts, EDL, intro / peak / outro |
+| `generate_bed` | Demo bed marked `source=generated`. Requires `i_understand_not_commercially_cleared=true` |
+| `save_brand_kit` | Persist BPM / moods / no-vocals for `recommend_bgm(brand_kit=…)` |
+| `analyze_batch` | Up to 20 clips → mood cluster + shared mini-playlist |
+
+Also ships a prompt template: **“Score this video like an IG music sticker.”**
+
+### Product rules (Instagram-like, not Instagram)
+
+- Prefer **instrumental** when `speech_coverage > 0.25`
+- Recommend a **hook window**, not the whole song
+- Show **why** (`cuts at 0.8s average, 112 BPM, warm gold hour`)
+- Always return **license + attribution text**
+- 3–7 tracks, not 40
+- User can override mood / genre / no-lyrics / platform / energy
+- Never claim “cleared for Instagram official sticker” unless it actually is
 
 ## Claude Desktop
 
-`claude_desktop_config.json`:
+`claude_desktop_config.json` — after a clone + `pip install -e .`:
 
 ```json
 {
   "mcpServers": {
     "sonicmatch": {
-      "command": "/absolute/path/to/sonicmatch-mcp/.venv/bin/sonicmatch-mcp",
+      "command": "/absolute/path/to/sonic-match-mcp/.venv/bin/sonicmatch-mcp",
       "args": [],
       "env": {
         "GEMINI_API_KEY": "",
@@ -110,22 +165,35 @@ pytest
 }
 ```
 
+After `pip install git+https://github.com/js713-lab/sonic-match-mcp.git`, `command` can be `sonicmatch-mcp` if that binary is on PATH.
+
 ## Cursor
 
-`.cursor/mcp.json` (project) or `~/.cursor/mcp.json`:
+`.cursor/mcp.json` (project) or `~/.cursor/mcp.json`. From git, no clone:
 
 ```json
 {
   "mcpServers": {
     "sonicmatch": {
-      "command": "uv",
-      "args": ["--directory", "/absolute/path/to/sonicmatch-mcp", "run", "sonicmatch-mcp"]
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/js713-lab/sonic-match-mcp.git",
+        "sonicmatch-mcp"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "",
+        "JAMENDO_CLIENT_ID": "",
+        "FREESOUND_API_KEY": ""
+      }
     }
   }
 }
 ```
 
-Copy-paste configs live in `examples/claude_desktop.mcp.json` and `examples/cursor.mcp.json`. User-owned Epidemic/Artlist JSON shape: `examples/user_library.example.json`. Registry metadata: `server.json`.
+From a clone: `"command": "uv", "args": ["--directory", "/absolute/path/to/sonic-match-mcp", "run", "sonicmatch-mcp"]`. After `pip install`, `"command": "python3", "args": ["-m", "sonicmatch"]` works if that interpreter has the package.
+
+Copy-paste configs: [`examples/claude_desktop.mcp.json`](examples/claude_desktop.mcp.json), [`examples/cursor.mcp.json`](examples/cursor.mcp.json). User-owned Epidemic/Artlist JSON shape: [`examples/user_library.example.json`](examples/user_library.example.json). Registry metadata: [`server.json`](server.json).
 
 HTTP editors can point at `http://127.0.0.1:8765/mcp` after `sonicmatch-mcp --http`.
 
@@ -150,35 +218,6 @@ flowchart TB
 ```
 
 Hard rule: **never send raw multi-MB video through the MCP payload.** Store locally, pass an `asset_id`. Loopback, `file://`, and private IPs are rejected (SSRF).
-
-## MCP tools
-
-| Tool | Input | Output |
-|---|---|---|
-| `status` | — | ffmpeg / keys / seed count |
-| `ingest_video` | local path or HTTPS URL, `max_seconds=180` | `asset_id`, duration, probe, keyframe paths. Platform URLs need `SONICMATCH_ALLOW_YTDLP=1` |
-| `analyze_video_music` | `asset_id` + platform + notes | VideoSonic profile |
-| `recommend_bgm` | profile or `asset_id` + prefs + `brand_kit` | 3–7 ranked tracks + reasons + license + hook in/out |
-| `search_music` | free text / bpm / mood | catalog hits |
-| `get_track` | id | metadata + license + urls |
-| `preview_mix` | `asset_id` + `track_id` + ducking | preview files + ffmpeg recipe + mix spec |
-| `export_mix_spec` | `asset_id` + `track_id` + `render?` | mix spec + ffmpeg + attribution (no render unless asked) |
-| `suggest_cuts` | `asset_id` + optional bpm/track | beat grid, snapped scene cuts, EDL, intro/peak/outro |
-| `generate_bed` | prompt / bpm / duration + `i_understand_not_commercially_cleared=true` | `source=generated` track (not catalog-cleared; excluded from auto recs) |
-| `save_brand_kit` | BPM / moods / no-vocals | persisted kit name for `recommend_bgm(brand_kit=…)` |
-| `analyze_batch` | list of paths/URLs (max 20) | mood cluster + shared mini-playlist |
-
-Also ships a prompt template: **“Score this video like an IG music sticker.”**
-
-### Product rules (Instagram-like, not Instagram)
-
-- Prefer **instrumental** when `speech_coverage > 0.25`
-- Recommend a **hook window**, not the whole song
-- Show **why** (`cuts at 0.8s average, 112 BPM, warm gold hour`)
-- Always return **license + attribution text**
-- 3–7 tracks, not 40
-- User can override mood / genre / no-lyrics / platform / energy
-- Never claim “cleared for Instagram official sticker” unless it actually is
 
 ## VideoSonic profile
 
@@ -276,4 +315,4 @@ IG Reel / Story · Shopee product clip · YouTube Shorts agent · CapCut/Premier
 
 MIT. Track licenses are independent of the repo license. Security reports: [SECURITY.md](SECURITY.md).
 
-
+From [CodeCrafter](https://codecrafter.dev).

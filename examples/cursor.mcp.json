@@ -1,8 +1,12 @@
 {
   "mcpServers": {
     "sonicmatch": {
-      "command": "python3",
-      "args": ["-m", "sonicmatch"],
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/js713-lab/sonic-match-mcp.git",
+        "sonicmatch-mcp"
+      ],
       "env": {
         "GEMINI_API_KEY": "",
         "JAMENDO_CLIENT_ID": "",
