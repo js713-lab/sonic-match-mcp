@@ -64,7 +64,7 @@ Requires **Python 3.10+** and `ffmpeg` / `ffprobe` on PATH. `yt-dlp` is optional
 
 ```bash
 pip install git+https://github.com/js713-lab/sonic-match-mcp.git
-sonicmatch-mcp
+sonicmatch-mcp            # or: python3 -m sonicmatch
 ```
 
 With [uv](https://github.com/astral-sh/uv), no clone:
