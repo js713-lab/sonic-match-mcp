@@ -6,6 +6,8 @@ import hashlib
 import json
 import re
 import shutil
+import subprocess
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -117,7 +119,16 @@ def _download_direct(url: str, dest: Path, settings: Settings) -> Path:
     return dest
 
 
+_ytdlp_lock = threading.Lock()
+
+
 def _yt_dlp_download(url: str, dest_dir: Path, max_seconds: int, max_mb: int) -> Path:
+    """Fetch only the opening of a platform video. One download at a time."""
+    with _ytdlp_lock:
+        return _yt_dlp_download_locked(url, dest_dir, max_seconds, max_mb)
+
+
+def _yt_dlp_download_locked(url: str, dest_dir: Path, max_seconds: int, max_mb: int) -> Path:
     binary = shutil.which("yt-dlp")
     if not binary:
         raise SonicError(
@@ -125,56 +136,93 @@ def _yt_dlp_download(url: str, dest_dir: Path, max_seconds: int, max_mb: int) ->
             "yt-dlp is not on PATH. Prefer a local file. "
             + YTDLP_TOS_WARNING,
         )
-    out_tmpl = str(dest_dir / "source.%(ext)s")
-    size = f"{max(1, int(max_mb))}M"
-    base = [
-        binary,
-        "--no-playlist",
-        "--no-warnings",
-        "--max-filesize",
-        size,
-        "-f",
-        "mp4/bv*+ba/b",
-        "--merge-output-format",
-        "mp4",
-        "-o",
-        out_tmpl,
-    ]
-    cmd = base + [
-        "--download-sections",
-        f"*0-{int(max_seconds)}",
-        "--force-keyframes-at-cuts",
-        url,
-    ]
+    window = max(15, min(int(max_seconds), 75))
     try:
-        import subprocess
-
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180, check=False)
+        probe = subprocess.run(
+            [
+                binary,
+                "-f",
+                "18/b[height<=360][ext=mp4]/b[height<=480]",
+                "-g",
+                "--no-playlist",
+                "--no-warnings",
+                url,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
     except subprocess.TimeoutExpired as exc:
-        raise SonicError("TIMEOUT", "yt-dlp timed out. Pass a local file instead.") from exc
-    if proc.returncode != 0:
-        cmd = base + [url]
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180, check=False)
-        if proc.returncode != 0:
-            blob = (proc.stderr or proc.stdout or "").strip()
-            tail = blob.splitlines()[-6:]
-            if ytdlp_extractor_failed(blob):
-                raise SonicError(
-                    "YTDLP_EXTRACTOR",
-                    "yt-dlp extractor failed or the platform blocked the download. "
-                    "Extractors break often. Pass a local file instead. "
-                    + " | ".join(tail),
-                )
-            raise SonicError("DOWNLOAD_FAILED", "yt-dlp failed: " + " | ".join(tail))
-    files = list(dest_dir.glob("source.*"))
-    files = [f for f in files if f.suffix.lower() not in {".part", ".ytdl", ".json"}]
-    if not files:
-        raise SonicError("DOWNLOAD_FAILED", "yt-dlp did not produce a file.")
-    st = files[0].stat()
-    if st.st_size > max_mb * 1024 * 1024:
-        files[0].unlink(missing_ok=True)
+        raise SonicError(
+            "TIMEOUT",
+            "YouTube did not answer in time. Upload the clip instead.",
+        ) from exc
+    if probe.returncode != 0:
+        blob = (probe.stderr or probe.stdout or "").strip()
+        tail = " | ".join(blob.splitlines()[-4:])
+        if ytdlp_extractor_failed(blob):
+            raise SonicError(
+                "YTDLP_EXTRACTOR",
+                "yt-dlp extractor failed or the platform blocked the download. "
+                "Pass a local file instead. " + tail,
+            )
+        raise SonicError("DOWNLOAD_FAILED", "yt-dlp failed: " + tail)
+    media = ""
+    for line in (probe.stdout or "").splitlines():
+        if line.startswith("https://"):
+            media = line.strip()
+            break
+    if not media:
+        raise SonicError("DOWNLOAD_FAILED", "yt-dlp did not return a video URL.")
+    nbytes = min(12 * 1024 * 1024, max(4 * 1024 * 1024, 160_000 * window))
+    grab = dest_dir / "range.mp4"
+    local = dest_dir / "source.mp4"
+    try:
+        fetched = subprocess.run(
+            ["curl", "-fL", "--retry", "1", "--range", f"0-{nbytes - 1}", "-o", str(grab), media],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        grab.unlink(missing_ok=True)
+        raise SonicError(
+            "TIMEOUT",
+            "The YouTube opening downloaded too slowly. Upload the clip instead.",
+        ) from exc
+    if fetched.returncode != 0 or not grab.exists() or grab.stat().st_size < 80_000:
+        grab.unlink(missing_ok=True)
+        raise SonicError(
+            "DOWNLOAD_FAILED",
+            "Could not fetch the opening of that YouTube video. Upload the clip instead.",
+        )
+    if grab.stat().st_size > max_mb * 1024 * 1024:
+        grab.unlink(missing_ok=True)
         raise SonicError("TOO_LARGE", f"yt-dlp file exceeded {max_mb} MB.")
-    return files[0]
+    cut = subprocess.run(
+        [
+            "ffmpeg", "-y", "-v", "error",
+            "-t", str(window),
+            "-i", str(grab),
+            "-c", "copy",
+            "-movflags", "+faststart",
+            str(local),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    grab.unlink(missing_ok=True)
+    if cut.returncode != 0 or not local.exists() or local.stat().st_size < 40_000:
+        local.unlink(missing_ok=True)
+        raise SonicError(
+            "DOWNLOAD_FAILED",
+            "That YouTube opening could not be cut. Upload the clip instead.",
+        )
+    return local
 
 
 def ingest_video(

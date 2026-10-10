@@ -197,6 +197,31 @@ Copy-paste configs: [`examples/claude_desktop.mcp.json`](examples/claude_desktop
 
 HTTP editors can point at `http://127.0.0.1:8765/mcp` after `sonicmatch-mcp --http`.
 
+## Hosted (sonic.codecrafter.dev)
+
+The GitHub repo stays **MIT**. Running it yourself is not metered.
+
+The public endpoint charges credits per tool call. A trial key is 25 credits. Pack prices: Reel 500 credits / $9, Studio 3000 credits / $39. Card checkout is not connected on the host yet.
+
+The landing page is https://sonic.codecrafter.dev. Use **Use the sample clip** there, or download [`examples/sample-clip.mp4`](examples/sample-clip.mp4) and upload it, to try a match without your own footage.
+
+1. Open https://sonic.codecrafter.dev and take a trial key (or use a paid key).
+2. `export SONICMATCH_API_KEY=sm_…`
+3. Add to Cursor: the button on that page, or paste `examples/cursor.hosted.mcp.json` into `~/.cursor/mcp.json`.
+
+```json
+{
+  "mcpServers": {
+    "sonicmatch": {
+      "url": "https://sonic.codecrafter.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:SONICMATCH_API_KEY}"
+      }
+    }
+  }
+}
+```
+
 `--http` has no authentication. Keep it on loopback. The Docker image binds `0.0.0.0` so the container port works — do not publish that port to the internet. See [SECURITY.md](SECURITY.md).
 
 ## Architecture

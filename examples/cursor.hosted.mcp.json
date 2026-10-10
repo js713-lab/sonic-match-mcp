@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "sonicmatch": {
+      "url": "https://sonic.codecrafter.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:SONICMATCH_API_KEY}"
+      }
+    }
+  }
+}

@@ -39,6 +39,7 @@ cache/
 .coverage
 htmlcov/
 *.mp4
+!examples/sample-clip.mp4
 *.wav
 *.mp3
 *.jpg
@@ -50,3 +51,8 @@ htmlcov/
 .DS_Store
 Thumbs.db
 uv.lock
+.env.bak*
+.env*.local
+.env.local
+error.logs
+hosted/data/

@@ -26,6 +26,7 @@ Include reproduction steps and affected versions. Redact API keys.
 
 - Default transport is **stdio**. That is the right mode for Claude Desktop, Cursor, and Grok.
 - `--http` has **no authentication**. Default bind is `127.0.0.1`. The Docker image binds `0.0.0.0` so the container port can be published — do not map that port to the public internet. Anyone who can reach the HTTP port can ingest local files the process can read and run mixes.
+- The public host `sonic.codecrafter.dev` is the credit gate in `sonicmatch.hosted`. It requires a Bearer key and proxies to loopback `--http`. Do not publish the upstream port.
 - Remote ingest is HTTPS-only. `file://`, loopback, private IPs, and URLs with credentials are rejected. Redirect hops are re-checked. Size is capped by `SONICMATCH_MAX_DOWNLOAD_MB` (default 200).
 - yt-dlp platform ingest is **off** unless `SONICMATCH_ALLOW_YTDLP=1`.
 - Tools return paths and `asset_id`s, never raw video bytes.
