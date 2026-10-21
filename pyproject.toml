@@ -47,6 +47,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.8",
+    "tomli>=2.0; python_version < '3.11'",
 ]
 gemini = ["google-genai>=1.0"]
 local-vl = [
