@@ -1,0 +1,16 @@
+# Codex MCP config.
+# User scope: ~/.codex/config.toml
+# Project scope (trusted projects only): .codex/config.toml
+#
+# Works today, before the PyPI release. After `sonicmatch-mcp` is on PyPI,
+# drop the --from argument and use: args = ["sonicmatch-mcp"]
+# See examples/codex.pypi.config.toml and PUBLISH.md.
+
+[mcp_servers.sonicmatch]
+command = "uvx"
+args = ["--from", "git+https://github.com/js713-lab/sonic-match-mcp.git", "sonicmatch-mcp"]
+
+[mcp_servers.sonicmatch.env]
+GEMINI_API_KEY = ""
+JAMENDO_CLIENT_ID = ""
+FREESOUND_API_KEY = ""

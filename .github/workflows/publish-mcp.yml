@@ -1,7 +1,20 @@
-name: Publish to PyPI + MCP Registry
+name: Publish to MCP Registry
+
+# Manual. Publishes server.json for an existing git tag. PyPI upload lives in
+# release.yml so a registry publish cannot mint a package by accident.
+# This workflow does not rewrite server.json. Bump manifest.json, server.json,
+# and the MCPB checksum first. See PUBLISH.md.
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to publish, for example v0.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
   publish:
@@ -10,31 +23,43 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: System deps
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
-      - name: Install
-        run: pip install build && pip install -e ".[dev]"
-
-      - name: Test
-        run: pytest
-
-      - name: Check tag matches package version
+      - name: Require tag, server.json, and manifest.json to match
+        env:
+          TAG_NAME: ${{ inputs.tag }}
         run: |
-          TAG=${GITHUB_REF#refs/tags/v}
-          PY=$(python -c "import tomllib, pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
-          test "$TAG" = "$PY"
-          jq --arg v "$TAG" '.version = $v | .packages |= map(if has("version") then .version = $v else . end)' server.json > server.tmp
-          mv server.tmp server.json
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
 
-      - name: Build
-        run: python -m build
+          tag = os.environ["TAG_NAME"].strip()
+          if not tag.startswith("v"):
+              raise SystemExit(f"tag {tag!r} must look like vX.Y.Z")
+          version = tag[1:]
+          server = json.loads(Path("server.json").read_text(encoding="utf-8"))
+          manifest = json.loads(Path("manifest.json").read_text(encoding="utf-8"))
+          if server.get("version") != version or manifest.get("version") != version:
+              raise SystemExit(
+                  "refusing to publish: tag "
+                  f"{version!r}, server.json {server.get('version')!r}, "
+                  f"manifest.json {manifest.get('version')!r}. "
+                  "Bump both files and attach a new MCPB before re-running."
+              )
+          identifier = server["packages"][0]["identifier"]
+          if f"/{tag}/" not in identifier:
+              raise SystemExit(
+                  f"server.json package identifier {identifier!r} does not contain /{tag}/"
+              )
+          print(f"registry metadata {version} matches {tag}")
+          PY
 
       - name: Install mcp-publisher
         run: |
@@ -42,9 +67,6 @@ jobs:
 
       - name: Validate server.json
         run: ./mcp-publisher validate
-
-      - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Authenticate to MCP Registry
         run: ./mcp-publisher login github-oidc

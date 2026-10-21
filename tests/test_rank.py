@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from sonicmatch.models import Track, VideoSonicProfile
 from sonicmatch.music.rank import hook_slice, license_ok, rank_tracks, score_track
 from sonicmatch.music.seed import SeedAdapter, load_seed_tracks
@@ -104,6 +106,55 @@ def test_nc_license_not_ok_for_platform():
     assert license_ok(cc0, "instagram_reel") is True
     assert license_ok(lib, "instagram_reel") is True
     assert license_ok(gen, "instagram_reel") is False
+
+
+@pytest.mark.parametrize(
+    "license_name",
+    [
+        "CC-BY-4.0",
+        "CC-BY",
+        "CC-BY-3.0",
+        "CC-BY-SA-4.0",
+        "CC-BY-SA-3.0",
+        "CC0-1.0",
+        "royalty-free",
+        "RF",
+        "public domain",
+    ],
+)
+def test_commercial_license_strings_are_ok(license_name: str):
+    track = Track(id="t", title="t", license=license_name, source="seed")
+    assert license_ok(track, "instagram_reel") is True
+
+
+@pytest.mark.parametrize(
+    "license_name",
+    ["CC-BY-NC-4.0", "CC-BY-NC-SA-4.0", "non-commercial", "performance rights", "syncopated"],
+)
+def test_noncommercial_or_unknown_license_strings_are_not_ok(license_name: str):
+    track = Track(id="t", title="t", license=license_name, source="seed")
+    assert license_ok(track, "generic") is False
+
+
+def test_every_seed_license_matches_the_gate():
+    """CC-BY rows must stay recommendable. Hyphenated names used to fail the gate."""
+    tracks = load_seed_tracks()
+    assert tracks
+    commercial = [t for t in tracks if "NC" not in t.license.upper()]
+    noncommercial = [t for t in tracks if "NC" in t.license.upper()]
+    assert len(commercial) >= 20
+    assert noncommercial
+    assert all(license_ok(t, "instagram_reel") for t in commercial)
+    assert all(not license_ok(t, "instagram_reel") for t in noncommercial)
+
+
+def test_cc_by_seed_track_is_ranked():
+    profile = _profile()
+    track = next(t for t in load_seed_tracks() if t.id == "seed_indie_porch_110")
+    assert track.license == "CC-BY-4.0"
+    recs = rank_tracks([track], profile, instrumental_only=True, max_results=5)
+    assert [r.track.id for r in recs] == ["seed_indie_porch_110"]
+    assert recs[0].license_ok_for_platform is True
 
 
 def test_rank_drops_nc_instead_of_downranking():

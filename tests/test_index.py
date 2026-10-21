@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sonicmatch.models import SearchQuery, Track
+from sonicmatch.models import SearchQuery
 from sonicmatch.music.index import TrackIndex
 from sonicmatch.music.seed import load_seed_tracks
 from sonicmatch.tools import configure, get_track, status

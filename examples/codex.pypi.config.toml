@@ -1,0 +1,11 @@
+# Codex MCP config after the first PyPI release (PUBLISH.md).
+# Until then, use examples/codex.config.toml (installs from git).
+
+[mcp_servers.sonicmatch]
+command = "uvx"
+args = ["sonicmatch-mcp"]
+
+[mcp_servers.sonicmatch.env]
+GEMINI_API_KEY = ""
+JAMENDO_CLIENT_ID = ""
+FREESOUND_API_KEY = ""

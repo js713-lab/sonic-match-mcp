@@ -1,5 +1,13 @@
 # Security policy
 
+## Supported versions
+
+| Version | Supported |
+|---|---|
+| 0.2.x (Python package and the 0.2.0 MCPB listing) | yes |
+
+There is no older release line. A fix lands in a new 0.2.x tag. The MCP Registry bundle stays on the version attached to its GitHub release until a new `.mcpb` is published.
+
 ## Credentials this project uses
 
 - **GEMINI_API_KEY**, **JAMENDO_CLIENT_ID**, **FREESOUND_API_KEY** — optional, from the environment or a gitignored `.env`. `status` reports whether they are set, never the values.

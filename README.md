@@ -2,17 +2,19 @@
 
 <!-- mcp-name: io.github.js713-lab/sonicmatch-mcp -->
 
+[![CI](https://github.com/js713-lab/sonic-match-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/js713-lab/sonic-match-mcp/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/sonicmatch-mcp)](https://pypi.org/project/sonicmatch-mcp/)
+[![License: MIT](https://img.shields.io/github/license/js713-lab/sonic-match-mcp)](LICENSE)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-6b4fbb)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.js713-lab%2Fsonicmatch-mcp/versions/latest)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/js713-lab/sonic-match-mcp?style=flat)](https://github.com/js713-lab/sonic-match-mcp/stargazers)
 
 **Video-native MCP server for license-safe BGM.** Watches the footage — not the script — and returns a shortlist, a 12–20s hook, and an ffmpeg ducking spec.
 
 <p align="center">
-  <img src="docs/banner.jpg" alt="Sonicmatch — video in, license-safe BGM out. Ingest, Analyze, Match, Mix." width="100%">
+  <img src="https://github.com/js713-lab/sonic-match-mcp/raw/main/docs/banner.jpg" alt="Sonicmatch — video in, license-safe BGM out. Ingest, Analyze, Match, Mix." width="100%">
 </p>
 
-Package / CLI: [`sonicmatch-mcp`](https://github.com/js713-lab/sonic-match-mcp). A [Model Context Protocol](https://modelcontextprotocol.io) server for Claude Desktop, Cursor, and other MCP clients. Drop an Instagram Reel, YouTube Short, or TikTok-style clip. Get royalty-free / Creative Commons matches with the license printed on every row.
+Package / CLI: [`sonicmatch-mcp`](https://github.com/js713-lab/sonic-match-mcp). A [Model Context Protocol](https://modelcontextprotocol.io) server for Claude Desktop, Cursor, Codex, and other MCP clients. Drop an Instagram Reel, YouTube Short, or TikTok-style clip. Get royalty-free / Creative Commons matches with the license printed on every row.
 
 Video-to-BGM already exists. The wedge is not “I also match music”:
 
@@ -56,24 +58,35 @@ Do **not** treat this as “script in → YouTube Music search out.” That alre
 
 > I dropped `./clip.mp4`. Analyze it for an Instagram Reel and recommend 5 instrumental BGMs. Then mix the top pick with ducking and give me the ffmpeg command.
 
-That prompt is the product. Install below, wire Claude Desktop or Cursor, paste it.
+That prompt is the product. Install below, wire Claude Desktop, Cursor, or Codex, and paste it.
 
 ## Quick start
 
 Requires **Python 3.10+** and `ffmpeg` / `ffprobe` on PATH. `yt-dlp` is optional and **off by default** (`SONICMATCH_ALLOW_YTDLP=0`) because platform extractors break and may violate ToS. Prefer a local file.
 
-```bash
-pip install git+https://github.com/js713-lab/sonic-match-mcp.git
-sonicmatch-mcp            # or: python3 -m sonicmatch
-```
+The PyPI project is `sonicmatch-mcp`. The console script is `sonicmatch-mcp`, which is what `uvx` and `pipx` run. `python -m sonicmatch` is the same server. The PyPI badge stays empty until the first tag is published. Install from git until then. Maintainer steps: [PUBLISH.md](PUBLISH.md).
 
-With [uv](https://github.com/astral-sh/uv), no clone:
+### Works today (git)
 
 ```bash
 uvx --from git+https://github.com/js713-lab/sonic-match-mcp.git sonicmatch-mcp
 ```
 
-From a clone (editable + tests):
+```bash
+pip install git+https://github.com/js713-lab/sonic-match-mcp.git
+sonicmatch-mcp --version   # or: python -m sonicmatch --version
+```
+
+### After the first PyPI release
+
+```bash
+uvx sonicmatch-mcp
+# or
+pipx install sonicmatch-mcp
+sonicmatch-mcp --version
+```
+
+### From a clone (editable + tests)
 
 ```bash
 git clone https://github.com/js713-lab/sonic-match-mcp.git
@@ -83,10 +96,10 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env   # optional keys
 
-# stdio (Claude Desktop / Cursor)
+# stdio (Claude Desktop / Cursor / Codex)
 sonicmatch-mcp
 
-# streamable HTTP (web editors)
+# streamable HTTP (web editors). No authentication. Keep it on loopback.
 sonicmatch-mcp --http --port 8765
 ```
 
@@ -96,13 +109,22 @@ uv venv && uv pip install -e ".[dev]"
 uv run sonicmatch-mcp
 ```
 
-v0.2 works **offline-ish** with a 20-track seed catalog aimed at Reel editors (cafe, product, talking-head, travel, food, fashion, event). Gemini, Jamendo, and Freesound are optional and degrade with a note in the tool response. Seed rows have no hosted audio on purpose — `preview_mix` synthesizes a demo bed. For real ads, point `SONICMATCH_LIBRARY_PATH` / `EPIDEMIC_LIBRARY_PATH` / `ARTLIST_LIBRARY_PATH` at JSON you already licensed.
-
 ```bash
-pytest   # generates tiny color mp4s with ffmpeg
+pytest          # generates tiny color mp4s with ffmpeg
+ruff check src tests
 ```
 
-Not on PyPI yet. Install from git.
+The seed catalog is about 20 Reel-editor rows (cafe, product, talking-head, travel, food, fashion, event) plus a vocal fixture and a CC-BY-NC fixture. It runs without API keys. Gemini, Jamendo, and Freesound are optional and degrade with a note in the tool response. Seed rows have no hosted audio on purpose — `preview_mix` synthesizes a demo bed. For real ads, point `SONICMATCH_LIBRARY_PATH` / `EPIDEMIC_LIBRARY_PATH` / `ARTLIST_LIBRARY_PATH` at JSON you already licensed.
+
+| Variable | Required | What it does |
+|---|---|---|
+| `GEMINI_API_KEY` | no | Gemini video understanding for `analyze_video_music` |
+| `JAMENDO_CLIENT_ID` | no | Jamendo search |
+| `FREESOUND_API_KEY` | no | Freesound beds and loops |
+| `SONICMATCH_LIBRARY_PATH` | no | User-owned library JSON. Also `EPIDEMIC_LIBRARY_PATH`, `ARTLIST_LIBRARY_PATH` |
+| `SONICMATCH_ALLOW_YTDLP` | no | `1` turns on platform URL ingest. Default `0` |
+| `SONICMATCH_MAX_DOWNLOAD_MB` | no | Download cap. Default 200 |
+| `SONICMATCH_HTTP_HOST` / `SONICMATCH_HTTP_PORT` | no | `--http` bind. Default `127.0.0.1:8765` |
 
 ## Features
 
@@ -145,31 +167,24 @@ Also ships a prompt template: **“Score this video like an IG music sticker.”
 - User can override mood / genre / no-lyrics / platform / energy
 - Never claim “cleared for Instagram official sticker” unless it actually is
 
+## Example
+
+Prompt:
+
+> I dropped `./clip.mp4`. Analyze it for an Instagram Reel and recommend 5 instrumental BGMs. Then mix the top pick with ducking and give me the ffmpeg command.
+
+The agent should call, in order:
+
+1. `ingest_video` with the local path. The result is an `asset_id`, not video bytes.
+2. `analyze_video_music` with `platform_hint` set to `instagram_reel`.
+3. `recommend_bgm` with that `asset_id` and `max_results` of 5.
+4. `preview_mix` on the top track with ducking, then `export_mix_spec`.
+
+A recommendation row carries `score`, `reason`, `suggested_in_out` (the hook), `ducking`, `license_ok_for_platform`, and `content_id_risk` (`unknown` or `likely`, never `cleared`). Seed fixtures include `seed_golden_hour_latte` (CC0-1.0) and `seed_indie_porch_110` (CC-BY-4.0). They have no hosted audio. `preview_mix` synthesizes a demo bed. CC-BY-NC rows are searchable and are not auto-recommended.
+
 ## Claude Desktop
 
-`claude_desktop_config.json` — after a clone + `pip install -e .`:
-
-```json
-{
-  "mcpServers": {
-    "sonicmatch": {
-      "command": "/absolute/path/to/sonic-match-mcp/.venv/bin/sonicmatch-mcp",
-      "args": [],
-      "env": {
-        "GEMINI_API_KEY": "",
-        "JAMENDO_CLIENT_ID": "",
-        "FREESOUND_API_KEY": ""
-      }
-    }
-  }
-}
-```
-
-After `pip install git+https://github.com/js713-lab/sonic-match-mcp.git`, `command` can be `sonicmatch-mcp` if that binary is on PATH.
-
-## Cursor
-
-`.cursor/mcp.json` (project) or `~/.cursor/mcp.json`. From git, no clone:
+`claude_desktop_config.json`. From git, no clone:
 
 ```json
 {
@@ -191,11 +206,64 @@ After `pip install git+https://github.com/js713-lab/sonic-match-mcp.git`, `comma
 }
 ```
 
-From a clone: `"command": "uv", "args": ["--directory", "/absolute/path/to/sonic-match-mcp", "run", "sonicmatch-mcp"]`. After `pip install`, `"command": "python3", "args": ["-m", "sonicmatch"]` works if that interpreter has the package.
+After a clone, `command` can be the absolute path of `.venv/bin/sonicmatch-mcp`. After the PyPI release, `args` is just `["sonicmatch-mcp"]`. Copy-paste files: [`examples/claude_desktop.mcp.json`](examples/claude_desktop.mcp.json), [`examples/claude_desktop.pypi.mcp.json`](examples/claude_desktop.pypi.mcp.json).
 
-Copy-paste configs: [`examples/claude_desktop.mcp.json`](examples/claude_desktop.mcp.json), [`examples/cursor.mcp.json`](examples/cursor.mcp.json). User-owned Epidemic/Artlist JSON shape: [`examples/user_library.example.json`](examples/user_library.example.json). Registry metadata: [`server.json`](server.json).
+## Cursor
 
-HTTP editors can point at `http://127.0.0.1:8765/mcp` after `sonicmatch-mcp --http`.
+`.cursor/mcp.json` (project) or `~/.cursor/mcp.json`. From git, no clone — [`examples/cursor.mcp.json`](examples/cursor.mcp.json):
+
+```json
+{
+  "mcpServers": {
+    "sonicmatch": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/js713-lab/sonic-match-mcp.git",
+        "sonicmatch-mcp"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "",
+        "JAMENDO_CLIENT_ID": "",
+        "FREESOUND_API_KEY": ""
+      }
+    }
+  }
+}
+```
+
+After PyPI, use [`examples/cursor.pypi.mcp.json`](examples/cursor.pypi.mcp.json) (`uvx` with args `["sonicmatch-mcp"]`). From a clone: `"command": "uv", "args": ["--directory", "/absolute/path/to/sonic-match-mcp", "run", "sonicmatch-mcp"]`. After `pip install`, `"command": "python3", "args": ["-m", "sonicmatch"]` works if that interpreter has the package.
+
+## Codex
+
+Codex reads `~/.codex/config.toml`. The same file is shared with the Codex IDE extension and the ChatGPT desktop app. Works today — [`examples/codex.config.toml`](examples/codex.config.toml):
+
+```toml
+[mcp_servers.sonicmatch]
+command = "uvx"
+args = ["--from", "git+https://github.com/js713-lab/sonic-match-mcp.git", "sonicmatch-mcp"]
+
+[mcp_servers.sonicmatch.env]
+GEMINI_API_KEY = ""
+JAMENDO_CLIENT_ID = ""
+FREESOUND_API_KEY = ""
+```
+
+Or from the CLI:
+
+```bash
+codex mcp add sonicmatch -- uvx --from git+https://github.com/js713-lab/sonic-match-mcp.git sonicmatch-mcp
+```
+
+After the PyPI release, the args shrink to `sonicmatch-mcp`. That file is [`examples/codex.pypi.config.toml`](examples/codex.pypi.config.toml):
+
+```bash
+codex mcp add sonicmatch -- uvx sonicmatch-mcp
+```
+
+`codex mcp list` should show `sonicmatch`. A trusted project can use `.codex/config.toml` instead of the home file.
+
+User-owned Epidemic/Artlist JSON shape: [`examples/user_library.example.json`](examples/user_library.example.json). Registry metadata: [`server.json`](server.json). HTTP editors can point at `http://127.0.0.1:8765/mcp` after `sonicmatch-mcp --http`.
 
 ## Hosted (sonic.codecrafter.dev)
 
@@ -314,7 +382,8 @@ Catalog > new tools.
 - [ ] 20 seed beds a Reel editor would actually keep, with audio you host
 - [ ] User-owned Artlist / Epidemic JSON as the default path for ads
 - [ ] Real CLAP audio embeddings
-- [ ] PyPI release
+- [x] PyPI project metadata, console script, and tag-triggered Trusted Publishing (`.github/workflows/release.yml`)
+- [ ] First upload on PyPI (`uvx sonicmatch-mcp`). Maintainer steps are in [PUBLISH.md](PUBLISH.md). The name was unregistered as of 2026-10-21.
 
 ## Why this can be a good open-source project
 
@@ -336,12 +405,12 @@ Day-1 risk gates (enforced in code, not slogans):
 
 IG Reel / Story · Shopee product clip · YouTube Shorts agent · CapCut/Premiere companion · campus recap · podcast clipper · travel-vlog batch · brand-kit lock (BPM + no vocals) · silent-film / accessibility · multi-agent studio.
 
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md) · [starter issues](docs/good-first-issues.md)
+
 ## License
 
-MIT. Track licenses are independent of the repo license. Security reports: [SECURITY.md](SECURITY.md).
+MIT. Track licenses are independent of the repo license.
 
 From [CodeCrafter](https://codecrafter.dev).
-
-<!-- maintainer note 2026-09-16T08:47Z -->
-
-<!-- maintainer note 2026-09-16T08:47Z -->

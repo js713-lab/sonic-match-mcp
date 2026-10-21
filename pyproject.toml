@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "sonicmatch-mcp"
-version = "0.2.0"
+version = "0.2.1"
 description = "Pick BGM that doesn't fight the voiceover. Watches the video, returns a hook + ffmpeg ducking spec, prints the license."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "js713-lab" }]
 keywords = [
     "mcp",
@@ -22,14 +23,17 @@ keywords = [
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "License :: OSI Approved :: MIT License",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Topic :: Multimedia :: Video",
     "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Video",
+    "Typing :: Typed",
 ]
 dependencies = [
     "mcp>=1.9",
@@ -40,7 +44,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
 gemini = ["google-genai>=1.0"]
 local-vl = [
     "faster-whisper>=1.0",
@@ -60,6 +67,8 @@ sonicmatch-mcp = "sonicmatch.server:main"
 Homepage = "https://github.com/js713-lab/sonic-match-mcp"
 Repository = "https://github.com/js713-lab/sonic-match-mcp"
 Issues = "https://github.com/js713-lab/sonic-match-mcp/issues"
+Changelog = "https://github.com/js713-lab/sonic-match-mcp/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/js713-lab/sonic-match-mcp#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -75,3 +84,9 @@ addopts = "-q"
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# Pyflakes, pycodestyle errors that catch real bugs, and a few warnings.
+# Import sorting and format checks stay out so CI does not churn style.
+select = ["E4", "E7", "E9", "F", "W"]

@@ -35,6 +35,25 @@ def _norm(s: str) -> str:
     return " ".join(s.lower().replace("_", " ").replace("-", " ").split())
 
 
+def _license_hay(text: str) -> str:
+    return f" {_norm(text)} "
+
+
+def _license_mentions(hay: str, token: str) -> bool:
+    """Match a license token after hyphen/underscore normalization.
+
+    Short tokens (``nc``, ``rf``, ``pd``, ``cc0``) must be whole words so
+    ``performance`` is not treated as ``rf`` or ``nc``. Longer names such as
+    ``cc by`` match as a phrase, which is what ``CC-BY-4.0`` becomes.
+    """
+    needle = _norm(token)
+    if not needle:
+        return False
+    if len(needle) <= 3:
+        return f" {needle} " in hay
+    return needle in hay
+
+
 def mood_overlap(track: Track, moods: list[str]) -> float:
     if not moods:
         return 0.5
@@ -81,14 +100,14 @@ def license_ok(track: Track, platform_hint: str) -> bool:
     source=seed.
     """
     _ = platform_hint  # reserved; NC is never ok on any platform we name
-    lic = _norm(track.license)
-    if any(tok in lic for tok in NONCOMMERCIAL):
+    hay = _license_hay(track.license)
+    if any(_license_mentions(hay, tok) for tok in NONCOMMERCIAL):
         return False
     if track.source == "generated":
         return False
     if track.source == "library":
         return True
-    if any(tok in lic for tok in COMMERCIAL_OK):
+    if any(_license_mentions(hay, tok) for tok in COMMERCIAL_OK):
         # Still NOT "IG official sticker" — just "license-safe to use with attribution".
         return True
     return False

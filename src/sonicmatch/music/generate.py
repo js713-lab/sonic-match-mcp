@@ -8,7 +8,6 @@ it synthesizes a local CC0-ish sine bed so the pipeline still demos.
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 
 from sonicmatch.config import Settings
 from sonicmatch.errors import SonicError
