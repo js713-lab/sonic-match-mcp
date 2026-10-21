@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from sonicmatch.config import Settings, load_settings
 from sonicmatch.analyze.gemini import analyze_gemini
 from sonicmatch.analyze.local import analyze_local

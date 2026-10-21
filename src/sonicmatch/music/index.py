@@ -8,7 +8,6 @@ import time
 from pathlib import Path
 from typing import Iterable
 
-from sonicmatch.config import Settings
 from sonicmatch.models import SearchQuery, Track
 from sonicmatch.music.embed import cosine, embed_profile, embed_track, ensure_embed
 from sonicmatch.models import VideoSonicProfile

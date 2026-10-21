@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/js713-lab/sonic-match-mcp/blob/main/SECURITY.md
+    about: Credential leaks, SSRF, and the unauthenticated HTTP transport. Do not open a public issue.
+  - name: Good first issues
+    url: https://github.com/js713-lab/sonic-match-mcp/blob/main/docs/good-first-issues.md
+    about: Scoped starters a maintainer can open, or that you can pick up once they are filed.

@@ -1,0 +1,61 @@
+name: Bug report
+description: A tool, license gate, or install path did something wrong
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. Do not paste API keys, `.env` contents, or a filled-in user library.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you run, and what came back?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Commands, the tool name, and a short input. A local fixture path is enough. Skip platform URLs unless SONICMATCH_ALLOW_YTDLP is part of the bug.
+      placeholder: |
+        1. sonicmatch-mcp --version
+        2. ingest_video on a 2 second local mp4
+        3. recommend_bgm returned no CC-BY rows
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `sonicmatch-mcp --version`, or the git commit if you installed from a clone.
+      placeholder: "0.2.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - git clone + pip install -e .
+        - pip install git+https
+        - uvx from git
+        - PyPI (uvx / pipx / pip)
+        - Docker
+        - hosted sonic.codecrafter.dev
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Python version, and whether ffmpeg/ffprobe are on PATH. Say which optional keys are set, not their values.
+      placeholder: "macOS, Python 3.12, ffmpeg 7, GEMINI_API_KEY unset"
+    validations:
+      required: false

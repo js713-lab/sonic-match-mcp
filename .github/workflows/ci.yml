@@ -8,7 +8,23 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: python -m pip install "ruff>=0.8"
+      - name: Ruff
+        run: ruff check src tests
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -23,6 +39,40 @@ jobs:
       - name: System deps
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Install
-        run: pip install -e ".[dev]"
+        run: python -m pip install -e ".[dev]"
       - name: Test
         run: pytest
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tools
+        run: python -m pip install --upgrade build twine
+      - name: Build
+        run: python -m build
+      - name: Twine check
+        run: twine check --strict dist/*
+      - name: Wheel contains the console script and seed catalog
+        run: |
+          python - <<'PY'
+          import glob
+          import zipfile
+
+          wheels = glob.glob("dist/*.whl")
+          assert len(wheels) == 1, wheels
+          with zipfile.ZipFile(wheels[0]) as zf:
+              names = zf.namelist()
+              entry = next(n for n in names if n.endswith(".dist-info/entry_points.txt"))
+              text = zf.read(entry).decode()
+              assert "sonicmatch-mcp = sonicmatch.server:main" in text
+              assert any(n.endswith("sonicmatch/data/seed_tracks.json") for n in names)
+              metadata = next(n for n in names if n.endswith(".dist-info/METADATA"))
+              meta = zf.read(metadata).decode()
+              assert "Requires-Python: >=3.10" in meta
+              assert "License-Expression: MIT" in meta
+          print("wheel ok", wheels[0])
+          PY

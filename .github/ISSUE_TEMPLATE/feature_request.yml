@@ -1,0 +1,38 @@
+name: Feature request
+description: A catalog, license, or editor-output improvement
+title: "feat: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Catalog quality and license honesty beat new tools. If this is a starter task, check docs/good-first-issues.md first.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What editing job is awkward or wrong today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should the tool return, and which file do you think changes?
+    validations:
+      required: true
+  - type: textarea
+    id: license
+    attributes:
+      label: License impact
+      description: Could this recommend a non-commercial track, scrape a paid catalog, or claim Content ID clearance? If yes, say how the gate stays intact.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Scope check
+      options:
+        - label: This does not ask the project to scrape Epidemic Sound, Artlist, Spotify, or an official Instagram/TikTok/YouTube library.
+          required: true
+        - label: I can live with a seed-catalog or user-owned JSON approach if the source is not actually open.
+          required: false
