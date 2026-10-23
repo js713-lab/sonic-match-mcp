@@ -165,7 +165,7 @@ def preview_mix(
     filter_complex, duck_note = _filters(use_duck)
     notes.append(duck_note)
 
-    def _mix_cmd(fc: str) -> list[str]:
+    def _mix_cmd(fc: str, video_args: list[str]) -> list[str]:
         return [
             which_ffmpeg(),
             "-y",
@@ -181,14 +181,7 @@ def preview_mix(
             "[aout]",
             "-t",
             f"{duration:.3f}",
-            "-c:v",
-            "libx264",
-            "-pix_fmt",
-            "yuv420p",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "28",
+            *video_args,
             "-c:a",
             "aac",
             "-b:a",
@@ -199,17 +192,39 @@ def preview_mix(
             str(video_out),
         ]
 
-    cmd = _mix_cmd(filter_complex)
+    copy_args = ["-c:v", "copy"]
+    encode_args = [
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "28",
+    ]
+
+    def _render(fc: str) -> list[str]:
+        # The picture is unchanged. Copy it and encode only the new audio.
+        copy_cmd = _mix_cmd(fc, copy_args)
+        try:
+            run(copy_cmd, timeout=180)
+            return copy_cmd
+        except SonicError:
+            notes.append("video stream copy failed; re-encoded the preview")
+            encode_cmd = _mix_cmd(fc, encode_args)
+            run(encode_cmd, timeout=180)
+            return encode_cmd
+
     try:
-        run(cmd, timeout=180)
+        cmd = _render(filter_complex)
     except SonicError:
         if use_duck:
             notes.append("sidechaincompress unavailable; fell back to a simple mix")
             use_duck = False
             filter_complex, duck_note = _filters(False)
             notes.append(duck_note)
-            cmd = _mix_cmd(filter_complex)
-            run(cmd, timeout=180)
+            cmd = _render(filter_complex)
         else:
             raise
 

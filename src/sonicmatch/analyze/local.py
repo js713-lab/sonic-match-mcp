@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import wave
 from pathlib import Path
 
-from sonicmatch.audio import peak_window, wav_stats
+from sonicmatch.audio import peak_window, probe_audio
 from sonicmatch.ffmpeg_util import scene_cut_times
-from sonicmatch.models import SceneBeat, VideoAsset, VideoSonicProfile
+from sonicmatch.models import EnergyPoint, SceneBeat, VideoAsset, VideoSonicProfile
 from sonicmatch.models import PlatformHint
 
 
@@ -223,17 +224,19 @@ def analyze_local(
     stats: dict = {}
 
     if asset.audio_path and Path(asset.audio_path).exists():
-        stats = _librosa_stats(asset.audio_path) or wav_stats(asset.audio_path)
+        stats = _audio_stats(asset)
         curve = stats.get("energy_curve") or []
         energy_mean = float(stats.get("energy_mean") or 0.45)
         speech_hint = float(stats.get("speech_hint") or 0.0)
         music_hint = float(stats.get("music_hint") or 0.0)
         silence = float(stats.get("silence_ratio") or asset.silence_ratio or 0.0)
         speech_cov = max(0.0, min(1.0, speech_hint * (1.0 - silence * 0.5)))
-        # Optional faster-whisper
-        transcript_cov = _whisper_coverage(asset.audio_path, duration)
-        if transcript_cov is not None:
-            speech_cov = transcript_cov
+        # Silero VAD only when the probe already thinks someone might be talking.
+        # Steady music used to load a full Whisper model on every analyze.
+        if speech_hint >= 0.2:
+            measured = _vad_coverage(asset.audio_path, duration)
+            if measured is not None:
+                speech_cov = measured
         has_speech = speech_cov > 0.12
         existing_music = (not has_speech and music_hint > 0.35) or (
             music_hint > 0.5 and speech_cov < 0.3
@@ -243,12 +246,15 @@ def analyze_local(
 
     cuts: list[float] = []
     src = asset.proxy_path or asset.local_path
-    cuts = _scenedetect_cuts(src) or []
-    if not cuts:
-        try:
-            cuts = scene_cut_times(src)
-        except Exception:
-            cuts = []
+    if asset.scene_cuts is not None:
+        cuts = list(asset.scene_cuts)
+    else:
+        cuts = _scenedetect_cuts(src) or []
+        if not cuts:
+            try:
+                cuts = scene_cut_times(src)
+            except Exception:
+                cuts = []
 
     pacing = _pacing_from_cuts(len(cuts), duration)
     bpm = _bpm_from_pacing(pacing, cuts, duration)
@@ -314,47 +320,61 @@ def analyze_local(
     )
 
 
-def _librosa_stats(path: str) -> dict | None:
-    """Optional librosa energy curve; None if the extra is not installed."""
+def _audio_stats(asset: VideoAsset) -> dict:
+    raw = asset.audio_stats or {}
+    if raw.get("energy_curve") or "energy_mean" in raw:
+        curve = [
+            EnergyPoint(t=float(pt.get("t") or 0.0), energy=float(pt.get("energy") or 0.0))
+            for pt in (raw.get("energy_curve") or [])
+            if isinstance(pt, dict)
+        ]
+        stats = dict(raw)
+        stats["energy_curve"] = curve
+        return stats
+    if asset.audio_path:
+        return probe_audio(asset.audio_path)
+    return {}
+
+
+def _vad_coverage(audio_path: str, duration: float) -> float | None:
+    """Speech fraction from Silero VAD. Does not load a Whisper model."""
+    if duration <= 0:
+        return None
     try:
-        import librosa  # type: ignore
-        import numpy as np  # type: ignore
+        import numpy as np
+        from faster_whisper.vad import VadOptions, get_speech_timestamps
     except Exception:
         return None
     try:
-        from sonicmatch.models import EnergyPoint
-
-        y, sr = librosa.load(path, sr=16000, mono=True)
-        if y.size == 0:
-            return None
-        hop = sr  # ~1s windows
-        rms = librosa.feature.rms(y=y, frame_length=min(len(y), sr), hop_length=hop)[0]
-        peak = float(np.max(rms)) or 1.0
-        curve = [
-            EnergyPoint(t=round(i * hop / sr, 3), energy=round(float(min(1.0, r / (peak * 0.9))), 4))
-            for i, r in enumerate(rms)
-        ]
-        mean = float(np.mean([p.energy for p in curve])) if curve else 0.0
-        var = float(np.var([p.energy for p in curve])) if curve else 0.0
-        zcr = float(np.mean(librosa.feature.zero_crossing_rate(y)))
-        silence_ratio = float(np.mean([1.0 if p.energy < 0.06 else 0.0 for p in curve])) if curve else 1.0
-        speech_hint = 0.0
-        if mean > 0.05 and var > 0.008 and zcr > 0.04:
-            speech_hint = min(1.0, 0.35 + var * 8 + zcr * 4)
-        music_hint = 0.0
-        if mean > 0.12 and var < 0.02:
-            music_hint = min(1.0, mean)
-        return {
-            "has_audio": True,
-            "duration": float(len(y) / sr),
-            "energy_curve": curve,
-            "energy_mean": round(mean, 4),
-            "energy_var": round(var, 5),
-            "silence_ratio": round(silence_ratio, 4),
-            "zcr_mean": round(zcr, 4),
-            "speech_hint": round(speech_hint, 4),
-            "music_hint": round(music_hint, 4),
-        }
+        with wave.open(audio_path, "rb") as wf:
+            rate = wf.getframerate() or 16000
+            channels = wf.getnchannels() or 1
+            if wf.getsampwidth() != 2:
+                return None
+            raw = wf.readframes(wf.getnframes())
+        audio = np.frombuffer(raw, dtype="<i2").astype(np.float32) / 32768.0
+        if channels > 1:
+            usable = (audio.size // channels) * channels
+            audio = audio[:usable].reshape(-1, channels).mean(axis=1)
+        if rate != 16000 and audio.size:
+            new_len = max(1, int(audio.size * 16000 / rate))
+            src_x = np.linspace(0.0, 1.0, num=audio.size, endpoint=False)
+            dst_x = np.linspace(0.0, 1.0, num=new_len, endpoint=False)
+            audio = np.interp(dst_x, src_x, audio).astype(np.float32)
+        stamps = get_speech_timestamps(
+            audio,
+            VadOptions(
+                max_speech_duration_s=30,
+                min_silence_duration_ms=160,
+                min_speech_duration_ms=200,
+                speech_pad_ms=80,
+            ),
+            sampling_rate=16000,
+        )
+        spoken = 0.0
+        for seg in stamps:
+            spoken += max(0.0, (float(seg["end"]) - float(seg["start"])) / 16000.0)
+        return max(0.0, min(1.0, spoken / duration))
     except Exception:
         return None
 
@@ -378,19 +398,4 @@ def _scenedetect_cuts(src: str) -> list[float] | None:
         return None
 
 
-def _whisper_coverage(audio_path: str, duration: float) -> float | None:
-    try:
-        from faster_whisper import WhisperModel  # type: ignore
-    except Exception:
-        return None
-    if duration <= 0:
-        return None
-    try:
-        model = WhisperModel("tiny", device="cpu", compute_type="int8")
-        segments, _info = model.transcribe(audio_path, vad_filter=True, beam_size=1)
-        spoken = 0.0
-        for seg in segments:
-            spoken += max(0.0, float(seg.end) - float(seg.start))
-        return max(0.0, min(1.0, spoken / duration))
-    except Exception:
-        return None
+

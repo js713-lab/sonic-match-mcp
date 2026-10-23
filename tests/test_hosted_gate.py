@@ -38,12 +38,16 @@ def test_home_page_lists_open_source_and_prices():
     assert 'id="match-form"' in page
     assert 'name="file"' in page
     assert 'id="thumb"' in page
-    assert 'id="use-sample"' in page
+    assert 'id="use-sample"' in page.split('id="drop"', 1)[1].split('class="or"', 1)[0]
     assert ">Process</button>" in page
     assert "Search the catalog" not in page
     assert 'name="platform"' not in page
     assert "console." not in page
     assert "lattice-loader" in page
+    assert 'id="drawer-foot"' in page
+    assert "/api/preview/" in page
+    assert "Copy link for agents" in page
+    assert "Waiting · " in page
     assert 'rel="icon"' in page
     opened = render_open_source()
     assert GITHUB_REPO in opened
@@ -166,6 +170,50 @@ def test_browser_mcp_path_opens_the_portal(tmp_path: Path):
         assert "Process" in page
     finally:
         gate_httpd.shutdown()
+
+
+def test_seed_preview_synthesizes_when_there_is_no_file(tmp_path: Path):
+    from shutil import which
+
+    if not (which("ffmpeg") and which("ffprobe")):
+        return
+    from sonicmatch.config import Settings
+    from sonicmatch.hosted.portal import preview_for_track
+    from sonicmatch.models import Track
+    from sonicmatch.music.seed import SeedAdapter
+
+    settings = Settings(cache_dir=tmp_path / "cache")
+    settings.ensure_dirs()
+    track = SeedAdapter().get("seed_golden_hour_latte")
+    assert track is not None
+    assert track.preview_url is None
+    path = preview_for_track(track, settings)
+    assert isinstance(path, Path)
+    assert path.is_file()
+    assert path.stat().st_size > 1000
+    assert path.resolve().is_relative_to(settings.cache_dir.resolve())
+    assert preview_for_track(track, settings) == path
+
+    remote = Track(
+        id="remote_track",
+        title="Remote",
+        preview_url="https://example.com/a.mp3",
+        license="CC0-1.0",
+        source="library",
+    )
+    assert preview_for_track(remote, settings) == "https://example.com/a.mp3"
+
+    leaked = Track(
+        id="leaked_track",
+        title="Leaked",
+        download_url="/etc/passwd",
+        license="CC0-1.0",
+        source="library",
+    )
+    safe = preview_for_track(leaked, settings)
+    assert isinstance(safe, Path)
+    assert safe.resolve() != Path("/etc/passwd").resolve()
+    assert safe.resolve().is_relative_to(settings.cache_dir.resolve())
 
 
 def test_catalog_search_returns_tracks():

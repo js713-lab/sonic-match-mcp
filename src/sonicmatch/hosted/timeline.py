@@ -196,4 +196,13 @@ def _public_pick(picked: dict[str, Any] | None) -> dict[str, Any] | None:
         "bpm": track.get("bpm"),
         "reason": item.get("reason") or "",
         "attribution_text": track.get("attribution_text") or "",
+        "preview": _has_preview(track),
     }
+
+
+def _has_preview(track: dict[str, Any]) -> bool:
+    for key in ("preview_url", "download_url"):
+        url = str(track.get(key) or "")
+        if url.startswith("https://"):
+            return True
+    return False

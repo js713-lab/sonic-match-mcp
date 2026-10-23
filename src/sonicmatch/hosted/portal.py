@@ -12,12 +12,16 @@ from typing import Any
 from urllib.parse import parse_qs
 
 from sonicmatch import tools
-from sonicmatch.config import load_settings
+from sonicmatch.config import Settings, load_settings
+from sonicmatch.ffmpeg_util import synthesize_bed
 from sonicmatch.hosted.timeline import build_timeline
-from sonicmatch.ingest import sanitize_asset_id
+from sonicmatch.ingest import discard_ingested_media, sanitize_asset_id
 from sonicmatch.errors import SonicError
+from sonicmatch.models import Track
 
 _ALLOWED_EXT = {".mp4", ".mov", ".webm", ".mkv", ".m4v"}
+_TRACK_ID_RE = re.compile(r"^[A-Za-z0-9_]{1,80}$")
+_preview_lock = threading.Lock()
 _PLATFORMS = {
     "instagram_reel",
     "instagram_story",
@@ -61,6 +65,54 @@ def _slim_rec(rec: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _owned_audio(url: str, settings: Settings) -> Path | None:
+    """A catalog file this process wrote under the cache. Never an arbitrary path."""
+    if not url or url.startswith(("http://", "https://", "file:")):
+        return None
+    try:
+        path = Path(url).expanduser().resolve()
+    except OSError:
+        return None
+    root = settings.cache_dir.resolve()
+    if path.is_file() and root in path.parents:
+        return path
+    return None
+
+
+def preview_for_track(track: Track, settings: Settings) -> str | Path:
+    """Real preview URL, a cached file, or a short demo bed at the track's BPM."""
+    for url in (track.preview_url, track.download_url):
+        if url and url.startswith("https://"):
+            return url
+    for url in (track.download_url, track.preview_url):
+        owned = _owned_audio(url or "", settings)
+        if owned:
+            return owned
+    dest = settings.cache_dir / "previews" / f"{track.id}.wav"
+    with _preview_lock:
+        if not dest.exists() or dest.stat().st_size < 64:
+            synthesize_bed(
+                dest,
+                duration_sec=8,
+                bpm=int(track.bpm or 110),
+                energy=float(track.energy or 0.5),
+            )
+    return dest
+
+
+def resolve_preview(track_id: str) -> str | Path:
+    if not _TRACK_ID_RE.fullmatch(track_id or ""):
+        raise ValueError("Unknown track.")
+    settings = tools.configure(load_settings())
+    try:
+        track = tools.hub().get(track_id)
+    except SonicError as exc:
+        raise ValueError(exc.message) from exc
+    if track is None:
+        raise ValueError("Unknown track.")
+    return preview_for_track(track, settings)
+
+
 def search_catalog(query: str, limit: int = 12) -> dict[str, Any]:
     tools.configure(load_settings())
     found = tools.search_music(query=query.strip(), limit=limit, catalog="auto")
@@ -70,26 +122,86 @@ def search_catalog(query: str, limit: int = 12) -> dict[str, Any]:
     return {"ok": True, "query": query, "tracks": tracks, "notes": found.get("notes") or []}
 
 
+# The public site runs this many matches at once. The rest wait in order.
+MATCH_SLOTS = 5
+_HOSTED_MAX_SECONDS = 60
+
 _jobs: dict[str, dict[str, Any]] = {}
+_queue: list[str] = []
+_running = 0
 _jobs_lock = threading.Lock()
 
 
+def reset_match_slots() -> None:
+    """Clear the hosted queue. Tests call this only after their workers have finished."""
+    global _running
+    with _jobs_lock:
+        _jobs.clear()
+        _queue.clear()
+        _running = 0
+
+
+def _ahead_locked(job_id: str) -> int:
+    try:
+        place = _queue.index(job_id)
+    except ValueError:
+        return _running
+    return _running + place
+
+
+def _pump_locked() -> None:
+    global _running
+    while _running < MATCH_SLOTS and _queue:
+        job_id = _queue.pop(0)
+        job = _jobs.get(job_id)
+        if not job:
+            continue
+        job["status"] = "working"
+        _running += 1
+        threading.Thread(target=_run_match, args=(job_id,), daemon=True).start()
+
+
+def _run_match(job_id: str) -> None:
+    global _running
+    with _jobs_lock:
+        job = _jobs.get(job_id) or {}
+        source = str(job.get("source") or "")
+        platform = str(job.get("platform") or "")
+    try:
+        result = match_source(source, platform)
+    except Exception:
+        logging.getLogger("sonicmatch.hosted").exception("portal match failed")
+        result = {"ok": False, "error": "Match failed."}
+    if not isinstance(result, dict):
+        result = {"ok": False, "error": "Match failed."}
+    with _jobs_lock:
+        others = any(
+            other != job_id
+            and str(item.get("source") or "") == source
+            and item.get("status") in {"queued", "working"}
+            for other, item in _jobs.items()
+        )
+        _jobs[job_id] = {"status": "done", "result": result}
+        _running = max(0, _running - 1)
+        _pump_locked()
+    if source and not others:
+        try:
+            discard_ingested_media(
+                source,
+                _HOSTED_MAX_SECONDS,
+                keep_profile=result.get("ok") is not False,
+            )
+        except Exception:
+            logging.getLogger("sonicmatch.hosted").exception("media cleanup failed")
+
+
 def start_match(source: str, platform: str) -> str:
-    """Run a match off the request so a slow download does not drop the page."""
+    """Queue a match. At most MATCH_SLOTS run; the rest wait for a free slot."""
     job_id = secrets.token_hex(8)
     with _jobs_lock:
-        _jobs[job_id] = {"status": "working"}
-
-    def run() -> None:
-        try:
-            result = match_source(source, platform)
-        except Exception:
-            logging.getLogger("sonicmatch.hosted").exception("portal match failed")
-            result = {"ok": False, "error": "Match failed."}
-        with _jobs_lock:
-            _jobs[job_id] = {"status": "done", "result": result}
-
-    threading.Thread(target=run, daemon=True).start()
+        _jobs[job_id] = {"status": "queued", "source": source, "platform": platform}
+        _queue.append(job_id)
+        _pump_locked()
     return job_id
 
 
@@ -98,13 +210,20 @@ def match_job(job_id: str) -> dict[str, Any] | None:
         return None
     with _jobs_lock:
         job = _jobs.get(job_id)
-        return dict(job) if job else None
+        if not job:
+            return None
+        status = str(job.get("status") or "")
+        if status == "done":
+            return {"status": "done", "result": job.get("result")}
+        if status == "queued":
+            return {"status": "queued", "ahead": _ahead_locked(job_id)}
+        return {"status": "working"}
 
 
 def match_source(source: str, platform: str) -> dict[str, Any]:
     tools.configure(load_settings())
     platform = platform if platform in _PLATFORMS else "instagram_reel"
-    ingested = tools.ingest_video(source, max_seconds=60)
+    ingested = tools.ingest_video(source, max_seconds=_HOSTED_MAX_SECONDS)
     if ingested.get("ok") is False:
         return ingested
     asset = ingested.get("asset") or {}

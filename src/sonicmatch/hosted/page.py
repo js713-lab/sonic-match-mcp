@@ -94,7 +94,8 @@ h1 {
   border-radius: 16px;
   border: 1px dashed rgba(240, 180, 41, 0.45);
   background: rgba(240, 180, 41, 0.05);
-  display: flex; align-items: center; justify-content: center; text-align: center; padding: 1.4rem;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 2.7rem 1.4rem 1.2rem;
   overflow: hidden;
 }
 .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 2; }
@@ -112,16 +113,33 @@ h1 {
   align-items: flex-end;
 }
 .drop.has-thumb .caption {
-  padding: 2.4rem 1rem 0.9rem;
+  position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+  padding: 0.75rem 0.9rem 1.6rem;
   text-align: left;
-  background: linear-gradient(to top, rgba(8, 7, 5, 0.9), rgba(8, 7, 5, 0));
+  background: linear-gradient(to bottom, rgba(8, 7, 5, 0.78), rgba(8, 7, 5, 0));
+  pointer-events: none;
+}
+.drop.has-thumb input { pointer-events: none; }
+.drop.has-clip video.thumb { object-fit: contain; background: #100e0b; }
+.change-clip {
+  pointer-events: auto; margin-top: 0.35rem;
+  background: transparent; color: #f6f1e7; border: 1px solid var(--line);
+  padding: 0.28rem 0.6rem; border-radius: 999px; font-size: 0.82rem;
 }
 .drop strong { display: block; font-size: 1.15rem; }
+.drop.has-thumb strong { padding-right: 10.6rem; }
+[hidden] { display: none !important; }
 .drop span, .hint { color: var(--muted); }
 .drop.has-thumb strong, .drop.has-thumb span { color: #f6f1e7; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
 .controls { display: grid; grid-template-columns: 1fr auto; gap: 0.6rem; align-items: end; }
-.sample-row { margin: 0.75rem 0 0; text-align: center; }
-.sample-row button { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+#use-sample {
+  position: absolute; top: 0.65rem; right: 0.65rem; z-index: 4;
+  width: auto; white-space: nowrap; pointer-events: auto;
+  background: rgba(16, 14, 11, 0.72); color: #f6f1e7;
+  border: 1px solid var(--line);
+  padding: 0.28rem 0.65rem; border-radius: 999px;
+  font-size: 0.82rem; font-weight: 560;
+}
 .or { margin: 0.85rem 0 0.15rem; color: var(--muted); font-size: 0.82rem; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; }
 label { display: block; margin: 0 0 0.35rem; color: var(--muted); font-size: 0.82rem; }
 input, select, button { font: inherit; color: var(--ink); }
@@ -182,7 +200,16 @@ body.split .drawer { display: flex; }
   padding: 1rem 1rem 0.7rem; border-bottom: 1px solid var(--line);
 }
 .drawer-head h2 { margin: 0; font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 1.6rem; font-weight: 560; }
-.drawer-body { overflow: auto; padding: 1rem 1rem 2rem; flex: 1; }
+.drawer-body { overflow: auto; padding: 1rem 1rem 1.2rem; flex: 1; }
+.drawer-foot {
+  flex: 0 0 auto;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: #14120e;
+}
+.drawer-foot .btn { width: 100%; }
+.play-row { margin-top: 0.65rem; }
+.play-row audio { display: block; width: 100%; height: 2.1rem; }
 .lattice-stage { display: flex; flex-direction: column; align-items: flex-start; gap: 0.85rem; min-height: 7rem; padding-top: 0.35rem; }
 .lattice-detail { margin: 0; color: var(--muted); max-width: 28rem; }
 .lattice-loader {
@@ -236,7 +263,7 @@ body.split .drawer { display: flex; }
 .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
 .actions button { padding: 0.4rem 0.7rem; border-radius: 999px; background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 560; }
 .actions button[aria-pressed="true"] { background: var(--amber); color: #1a1408; border-color: transparent; }
-.copy-row { margin: 0 0 0.9rem; }
+.copy-row { margin: 0; }
 .plans { max-width: 68rem; }
 .plans-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; margin: 0 0 1.35rem; }
 .plans h1 { margin: 0; }
@@ -282,7 +309,9 @@ body.split .drawer { display: flex; }
   main { padding: 1.35rem 0.9rem 2.8rem; }
   h1 { font-size: clamp(2.05rem, 11vw, 3.1rem); }
   .lede, .plans .sub { font-size: 1rem; }
-  .drop { min-height: 8.5rem; padding: 1rem; }
+  .drop { min-height: 9.5rem; padding: 2.8rem 1rem 1rem; }
+  .drop.has-thumb .caption { padding-top: 2.6rem; }
+  .drop.has-thumb strong { padding-right: 0; }
   .controls button, .searchbar button, .btn { width: 100%; }
   button, .btn { white-space: normal; }
   body.split { padding-right: 0; }
@@ -381,6 +410,7 @@ _JS = r"""
   }
   var drop = document.getElementById("drop");
   var thumb = document.getElementById("thumb");
+  var clip = document.getElementById("clip");
   var urlInput = document.getElementById("url");
   var thumbUrl = "";
   function youtubeId(value) {
@@ -389,9 +419,29 @@ _JS = r"""
   }
   function showThumb(src) {
     if (!thumb || !drop || !src) return;
+    if (clip) {
+      clip.pause();
+      clip.removeAttribute("src");
+      clip.hidden = true;
+    }
     thumb.hidden = false;
     thumb.src = src;
     drop.className = "drop has-thumb";
+    var changeForPoster = document.getElementById("change-clip");
+    var hasFile = fileInput && fileInput.files && fileInput.files[0];
+    if (changeForPoster) changeForPoster.hidden = !hasFile;
+  }
+  function showClip(src) {
+    if (!clip || !drop || !src) return;
+    if (thumb) {
+      thumb.removeAttribute("src");
+      thumb.hidden = true;
+    }
+    clip.hidden = false;
+    clip.src = src;
+    drop.className = "drop has-thumb has-clip";
+    var changeClip = document.getElementById("change-clip");
+    if (changeClip) changeClip.hidden = false;
   }
   function clearThumb() {
     if (thumbUrl) URL.revokeObjectURL(thumbUrl);
@@ -400,11 +450,20 @@ _JS = r"""
       thumb.removeAttribute("src");
       thumb.hidden = true;
     }
+    if (clip) {
+      clip.pause();
+      clip.removeAttribute("src");
+      clip.hidden = true;
+      try { clip.load(); } catch (err) {}
+    }
     if (drop) drop.className = "drop";
+    var changeClip = document.getElementById("change-clip");
+    if (changeClip) changeClip.hidden = true;
   }
   function frameFromFile(file) {
     if (thumbUrl) URL.revokeObjectURL(thumbUrl);
     thumbUrl = URL.createObjectURL(file);
+    showClip(thumbUrl);
     var video = document.createElement("video");
     video.muted = true;
     video.playsInline = true;
@@ -465,6 +524,22 @@ _JS = r"""
     });
   }
   if (urlInput) urlInput.addEventListener("input", previewLink);
+  var changeClip = document.getElementById("change-clip");
+  if (changeClip && fileInput) {
+    changeClip.addEventListener("click", function () { fileInput.click(); });
+  }
+  if (drop) {
+    drop.addEventListener("dragover", function (event) { event.preventDefault(); });
+    drop.addEventListener("drop", function (event) {
+      event.preventDefault();
+      var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+      if (!file || !fileInput) return;
+      var bag = new DataTransfer();
+      bag.items.add(file);
+      fileInput.files = bag.files;
+      fileInput.dispatchEvent(new Event("change"));
+    });
+  }
   var sampleButton = document.getElementById("use-sample");
   if (sampleButton && fileInput) {
     sampleButton.addEventListener("click", function () {
@@ -491,6 +566,27 @@ _JS = r"""
       if ((thumb.src || "").indexOf("ytimg.com") !== -1) clearThumb();
     });
   }
+  function drawerFoot() {
+    return document.getElementById("drawer-foot");
+  }
+  function clearFoot() {
+    var foot = drawerFoot();
+    if (!foot) return;
+    foot.textContent = "";
+    foot.hidden = true;
+  }
+  function showAgentFoot(data) {
+    var foot = drawerFoot();
+    if (!foot) return;
+    foot.textContent = "";
+    foot.hidden = false;
+    var copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.className = "btn";
+    copyButton.textContent = "Copy link for agents";
+    copyButton.addEventListener("click", function () { copyText(agentText(data), copyButton); });
+    foot.appendChild(copyButton);
+  }
   function openDrawer(title) {
     var drawer = document.getElementById("drawer");
     var back = document.getElementById("drawer-back");
@@ -510,8 +606,10 @@ _JS = r"""
     drawer.setAttribute("aria-hidden", "true");
     document.body.classList.remove("split");
     if (back) back.hidden = true;
+    clearFoot();
   }
   var liveLattice = null;
+  var queueNote = "";
   function mountLattice(parent) {
     var cells = [0, 1, 2, 7, null, 3, 6, 5, 4];
     var doneCells = [2, 3, 5, 7];
@@ -627,10 +725,12 @@ _JS = r"""
     };
   }
   function showProcessing() {
+    queueNote = "";
     openDrawer("Processing");
     var body = document.getElementById("drawer-body");
     if (!body) return;
     body.textContent = "";
+    clearFoot();
     var stage = document.createElement("div");
     stage.className = "lattice-stage";
     body.appendChild(stage);
@@ -643,12 +743,17 @@ _JS = r"""
         clearInterval(timer);
         return;
       }
+      if (queueNote) {
+        liveLattice.setLabel(queueNote);
+        return;
+      }
       step = (step + 1) % labels.length;
       liveLattice.setLabel(labels[step]);
     }, 1600);
   }
   function failProcess(message) {
     say(message);
+    clearFoot();
     if (liveLattice && liveLattice.status() === "working") {
       liveLattice.setStatus("error");
       openDrawer("Process failed");
@@ -717,23 +822,33 @@ _JS = r"""
       body: JSON.stringify({ asset_id: assetId, section: index, vote: next })
     }).catch(function () {});
   }
+  function trackPlayer(pick) {
+    if (!pick || !pick.id) return null;
+    var wrap = document.createElement("div");
+    wrap.className = "play-row";
+    var audio = document.createElement("audio");
+    audio.controls = true;
+    audio.preload = "none";
+    audio.src = "/api/preview/" + encodeURIComponent(pick.id);
+    audio.setAttribute("aria-label", (pick.title || "Suggestion") + " preview");
+    audio.addEventListener("play", function () {
+      var nodes = document.querySelectorAll("#drawer audio");
+      for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i] !== audio) nodes[i].pause();
+      }
+    });
+    wrap.appendChild(audio);
+    return wrap;
+  }
   function paintTimeline(data) {
     openDrawer(data.duration_label ? data.duration_label + " timeline" : "Timeline");
     var body = document.getElementById("drawer-body");
     if (!body) return;
     body.textContent = "";
-    var copy = document.createElement("div");
-    copy.className = "copy-row";
-    var copyButton = document.createElement("button");
-    copyButton.type = "button";
-    copyButton.className = "btn";
-    copyButton.textContent = "Copy link for agents";
-    copyButton.addEventListener("click", function () { copyText(agentText(data), copyButton); });
-    copy.appendChild(copyButton);
-    body.appendChild(copy);
+    showAgentFoot(data);
     var hint = document.createElement("p");
     hint.className = "meta";
-    hint.textContent = "Frames come from scene cuts and the sound curve. Sound names are references, not files in the catalog.";
+    hint.textContent = "Play previews the suggestion. A row with no catalog file plays a short demo at that BPM.";
     body.appendChild(hint);
     (data.sections || []).forEach(function (section) {
       var card = document.createElement("article");
@@ -746,6 +861,8 @@ _JS = r"""
       meta.textContent = (bgm.title || "No bed yet") + (bgm.license ? " · " + bgm.license : "");
       card.appendChild(title);
       card.appendChild(meta);
+      var player = trackPlayer(bgm);
+      if (player) card.appendChild(player);
       if (bgm.reason) {
         var why = document.createElement("p");
         why.className = "why";
@@ -757,6 +874,8 @@ _JS = r"""
         alt.className = "meta";
         alt.textContent = "Also " + section.alt.title;
         card.appendChild(alt);
+        var altPlayer = trackPlayer(section.alt);
+        if (altPlayer) card.appendChild(altPlayer);
       }
       var sfx = document.createElement("p");
       sfx.className = "meta";
@@ -799,10 +918,30 @@ _JS = r"""
           var drawer = document.getElementById("drawer");
           if (!drawer || drawer.getAttribute("aria-hidden") === "true") return;
           paintTimeline(timeline);
-        }, 700);
+        }, 180);
         if (timeline.asset_id && history.replaceState) {
           history.replaceState(null, "", "/?t=" + timeline.asset_id);
         }
+      }
+      function noteJob(data) {
+        if (!data || !liveLattice || liveLattice.status() !== "working") return false;
+        if (data.status === "queued") {
+          var ahead = Number(data.ahead) || 0;
+          queueNote = ahead === 0 ? "Waiting · next up" : (ahead === 1 ? "Waiting · 1 ahead" : "Waiting · " + ahead + " ahead");
+          openDrawer("Waiting");
+          liveLattice.setLabel(queueNote);
+          return true;
+        }
+        if (data.status === "working") {
+          if (queueNote) {
+            queueNote = "";
+            openDrawer("Processing");
+            liveLattice.setLabel("Reading frames");
+          }
+          return true;
+        }
+        queueNote = "";
+        return false;
       }
       function poll(jobId) {
         var drawer = document.getElementById("drawer");
@@ -810,8 +949,8 @@ _JS = r"""
         fetch("/api/match/" + jobId).then(function (res) {
           return res.json().then(function (data) { return { ok: res.ok, data: data }; });
         }).then(function (packed) {
-          if (packed.data && packed.data.status === "working") {
-            setTimeout(function () { poll(jobId); }, 2000);
+          if (noteJob(packed.data)) {
+            setTimeout(function () { poll(jobId); }, 400);
             return;
           }
           finish(packed);
@@ -822,7 +961,8 @@ _JS = r"""
       fetch("/api/match", { method: "POST", body: body }).then(function (res) {
         return res.json().then(function (data) { return { ok: res.ok, data: data }; });
       }).then(function (packed) {
-        if (packed.data && packed.data.job_id && packed.data.status === "working") {
+        if (packed.data && packed.data.job_id && (packed.data.status === "working" || packed.data.status === "queued")) {
+          noteJob(packed.data);
           poll(packed.data.job_id);
           return;
         }
@@ -898,13 +1038,15 @@ def render_home() -> str:
   <form id="match-form" class="stage" action="/api/match" method="post" enctype="multipart/form-data">
     <div class="drop" id="drop">
       <input id="file" name="file" type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,.mp4,.mov,.webm,.mkv,.m4v">
+      <video id="clip" class="thumb" controls playsinline hidden></video>
       <img id="thumb" class="thumb" alt="" hidden>
       <div class="caption">
         <strong id="file-label">Drop a clip or choose a file</strong>
         <span>mp4, mov, webm, mkv</span>
+        <button type="button" id="change-clip" class="change-clip" hidden>Change clip</button>
       </div>
+      <button type="button" id="use-sample">Use the sample clip</button>
     </div>
-    <p class="sample-row"><button type="button" id="use-sample">Use the sample clip</button></p>
     <p class="or">or</p>
     <div class="controls">
       <div>
@@ -923,6 +1065,7 @@ def render_home() -> str:
       <button type="button" id="drawer-close" class="ghost">Close</button>
     </div>
     <div id="drawer-body" class="drawer-body"></div>
+    <div id="drawer-foot" class="drawer-foot" hidden></div>
   </aside>
   </div>
   {_JS}

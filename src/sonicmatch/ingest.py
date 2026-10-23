@@ -8,11 +8,13 @@ import re
 import shutil
 import subprocess
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
 from sonicmatch.config import Settings, load_settings
 from sonicmatch.errors import SonicError
+from sonicmatch.audio import dump_audio_stats, probe_audio
 from sonicmatch.ffmpeg_util import (
     aspect_label,
     extract_audio_wav,
@@ -43,6 +45,111 @@ def _hash_id(*parts: str) -> str:
         h.update(p.encode("utf-8", errors="replace"))
         h.update(b"\0")
     return h.hexdigest()[:16]
+
+
+def _clamp_seconds(max_seconds: int) -> int:
+    if max_seconds <= 0:
+        return 180
+    return min(int(max_seconds), 600)
+
+
+def _is_inside(path: Path, root: Path) -> bool:
+    """True when path itself sits under root. Does not follow symlinks."""
+    try:
+        path.absolute().relative_to(root.absolute())
+    except ValueError:
+        return False
+    return True
+
+
+_MEDIA_SUFFIXES = {".mp4", ".mov", ".webm", ".mkv", ".m4v", ".wav", ".jpg", ".jpeg", ".png"}
+
+
+def _asset_id_for(source: str, max_seconds: int) -> str | None:
+    """Same id ingest_video will use, so a finished job can find its cache."""
+    source = source.strip().strip("\"'")
+    if not source:
+        return None
+    seconds = str(_clamp_seconds(max_seconds))
+    if source.lower().startswith(("http://", "https://")):
+        return _hash_id("url", source, seconds)
+    path = Path(source).expanduser()
+    if not path.is_file():
+        return None
+    path = path.resolve()
+    st = path.stat()
+    return _hash_id("file", str(path), str(st.st_mtime_ns), str(st.st_size), seconds)
+
+
+def _unlink_inside(path: Path, root: Path) -> None:
+    if path.is_symlink():
+        if _is_inside(path, root):
+            path.unlink(missing_ok=True)
+        return
+    if path.is_file() and _is_inside(path, root):
+        path.unlink(missing_ok=True)
+
+
+def _strip_media(adir: Path, root: Path) -> None:
+    for path in list(adir.rglob("*")):
+        if not _is_inside(path, root):
+            continue
+        if path.is_symlink() or (path.is_file() and path.suffix.lower() in _MEDIA_SUFFIXES):
+            path.unlink(missing_ok=True)
+    frames = adir / "frames"
+    if frames.is_dir() and _is_inside(frames, root) and not any(frames.iterdir()):
+        frames.rmdir()
+
+
+def _remove_tree(path: Path, root: Path) -> None:
+    if not _is_inside(path, root):
+        return
+    if path.is_symlink() or path.is_file():
+        path.unlink(missing_ok=True)
+        return
+    if not path.is_dir():
+        return
+    for child in list(path.iterdir()):
+        _remove_tree(child, root)
+    if _is_inside(path, root):
+        path.rmdir()
+
+
+def discard_ingested_media(
+    source: str,
+    max_seconds: int,
+    *,
+    keep_profile: bool,
+    settings: Settings | None = None,
+) -> None:
+    """Drop the upload or download after a hosted match. The timeline JSON stays.
+
+    A file outside the cache is left alone. On success the small profile stays so
+    the same link does not need the video again. On failure the asset cache goes
+    too, so a retry can fetch a fresh copy.
+    """
+    settings = settings or load_settings()
+    root = settings.cache_dir.resolve()
+    source = (source or "").strip().strip("\"'")
+    if not source:
+        return
+    asset_id = _asset_id_for(source, max_seconds)
+    portal_file: Path | None = None
+    if not source.lower().startswith(("http://", "https://")):
+        candidate = Path(source).expanduser()
+        portal = root / "portal"
+        if candidate.is_file() or candidate.is_symlink():
+            if _is_inside(candidate, portal):
+                portal_file = candidate
+    adir = (root / "assets" / asset_id) if asset_id else None
+    if adir is not None and adir.is_dir() and _is_inside(adir, root / "assets"):
+        profile = adir / "profile.json"
+        if keep_profile and profile.is_file():
+            _strip_media(adir, root)
+        else:
+            _remove_tree(adir, root)
+    if portal_file is not None:
+        _unlink_inside(portal_file, root)
 
 
 def _asset_dir(settings: Settings, asset_id: str) -> Path:
@@ -240,9 +347,7 @@ def ingest_video(
     source = source.strip().strip("\"'")
     if not source:
         raise SonicError("BAD_SOURCE", "source is required (local path or http(s) URL).")
-    if max_seconds <= 0:
-        max_seconds = 180
-    max_seconds = min(int(max_seconds), 600)
+    max_seconds = _clamp_seconds(max_seconds)
 
     degraded: list[str] = []
     is_url = source.lower().startswith(("http://", "https://", "file:"))
@@ -312,43 +417,62 @@ def ingest_video(
         raise SonicError("PROBE_FAILED", "Could not read video duration (not a valid media file?).")
 
     proxy_seconds = min(settings.proxy_max_seconds, max_seconds, int(duration) + 1)
-    proxy_path = adir / "proxy.mp4"
-    try:
-        make_proxy(local, proxy_path, max_seconds=proxy_seconds, height=360)
-    except SonicError as exc:
-        degraded.append(f"proxy:{exc.code}")
-        proxy_path = Path(str(local))
-
-    audio_path = adir / "audio.wav"
-    has_audio = meta["has_audio"]
-    if has_audio:
-        try:
-            extract_audio_wav(local, audio_path, max_seconds=min(max_seconds, int(duration) + 1))
-        except SonicError as exc:
-            degraded.append(f"audio:{exc.code}")
-            has_audio = False
-            audio_path = None  # type: ignore[assignment]
-    else:
-        audio_path = None  # type: ignore[assignment]
-
+    long_edge = max(int(meta["width"]), int(meta["height"]))
+    # A clip that is already near 360p costs more to re-encode than later steps save.
+    reuse_source = 0 < long_edge <= 720 and duration <= proxy_seconds + 0.5
+    proxy_file = adir / "proxy.mp4"
+    audio_file = adir / "audio.wav"
     frames_dir = adir / "frames"
-    try:
-        frames = extract_scene_keyframes(
-            proxy_path if proxy_path.exists() else local,
-            frames_dir,
-            max_frames=settings.max_keyframes,
-        )
-    except SonicError as exc:
-        degraded.append(f"keyframes:{exc.code}")
-        frames = []
+    has_audio = bool(meta["has_audio"])
+    audio_limit = min(max_seconds, int(duration) + 1)
+    stats: dict[str, Any] | None = None
+    frames: list[Path] = []
+    scene_cuts: list[float] | None = None
 
-    # Silence ratio from wav if present.
-    silence_ratio = None
-    if audio_path and Path(audio_path).exists():
-        from sonicmatch.audio import wav_stats
+    def _extract_audio() -> dict[str, Any]:
+        extract_audio_wav(local, audio_file, max_seconds=audio_limit)
+        return probe_audio(audio_file)
 
-        stats = wav_stats(audio_path)
-        silence_ratio = stats.get("silence_ratio")
+    def _frames_from(src: Path) -> tuple[list[Path], list[float]]:
+        return extract_scene_keyframes(src, frames_dir, max_frames=settings.max_keyframes)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        audio_fut = pool.submit(_extract_audio) if has_audio else None
+        if reuse_source:
+            proxy_path: Path = local
+            frame_fut = pool.submit(_frames_from, local)
+        else:
+            try:
+                pool.submit(make_proxy, local, proxy_file, max_seconds=proxy_seconds, height=360).result()
+                proxy_path = proxy_file
+            except SonicError as exc:
+                degraded.append(f"proxy:{exc.code}")
+                proxy_path = local
+            frame_fut = pool.submit(_frames_from, proxy_path if proxy_path.exists() else local)
+        if audio_fut is not None:
+            try:
+                stats = audio_fut.result()
+            except SonicError as exc:
+                degraded.append(f"audio:{exc.code}")
+                has_audio = False
+        try:
+            frames, scene_cuts = frame_fut.result()
+        except SonicError as exc:
+            degraded.append(f"keyframes:{exc.code}")
+            frames, scene_cuts = [], None
+
+    if not has_audio:
+        audio_file_out = None
+    elif not audio_file.exists():
+        has_audio = False
+        audio_file_out = None
+    else:
+        audio_file_out = audio_file
+    if not frames and not scene_cuts:
+        # The keyframe pass failed outright. Leave cuts unset so analyze can retry.
+        scene_cuts = None
+
+    silence_ratio = None if not stats else stats.get("silence_ratio")
 
     probe_path = adir / "probe.json"
     probe_path.write_text(json.dumps(probe, indent=2)[:200_000], encoding="utf-8")
@@ -365,10 +489,12 @@ def ingest_video(
         has_audio=bool(has_audio),
         probe_json={"format": (probe.get("format") or {}), "n_streams": len(probe.get("streams") or [])},
         original_source=original,
-        audio_path=str(audio_path) if audio_path else None,
+        audio_path=str(audio_file_out) if audio_file_out else None,
         keyframe_paths=[str(p) for p in frames],
         proxy_path=str(proxy_path) if Path(proxy_path).exists() else None,
         silence_ratio=silence_ratio,
+        scene_cuts=scene_cuts,
+        audio_stats=dump_audio_stats(stats) if stats else {},
         degraded=degraded,
     )
     save_asset(settings, asset)

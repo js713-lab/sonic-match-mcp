@@ -111,7 +111,7 @@ def make_proxy(
 ) -> None:
     dest = Path(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    vf = f"scale=-2:{int(height)}"
+    vf = f"scale=-2:{int(height)}:flags=fast_bilinear"
     cmd = [
         which_ffmpeg(),
         "-y",
@@ -132,7 +132,9 @@ def make_proxy(
         "-b:a",
         "64k",
         "-preset",
-        "veryfast",
+        "ultrafast",
+        "-tune",
+        "fastdecode",
         "-crf",
         "28",
         str(dest),
@@ -156,12 +158,26 @@ def make_proxy(
             "yuv420p",
             "-an",
             "-preset",
-            "veryfast",
+            "ultrafast",
+            "-tune",
+            "fastdecode",
             "-crf",
             "28",
             str(dest),
         ]
         run(cmd, timeout=180)
+
+
+def _scene_pts(blob: str) -> list[float]:
+    times: list[float] = []
+    for line in blob.splitlines():
+        if "pts_time:" not in line:
+            continue
+        try:
+            times.append(float(line.split("pts_time:", 1)[1].split()[0]))
+        except (IndexError, ValueError):
+            continue
+    return times
 
 
 def extract_scene_keyframes(
@@ -170,7 +186,8 @@ def extract_scene_keyframes(
     *,
     max_frames: int = 12,
     threshold: float = 0.32,
-) -> list[Path]:
+) -> tuple[list[Path], list[float]]:
+    """Write up to max_frames pictures and the scene-change timestamps from that pass."""
     dest = Path(dest_dir)
     dest.mkdir(parents=True, exist_ok=True)
     pattern = dest / "kf_%03d.jpg"
@@ -180,17 +197,18 @@ def extract_scene_keyframes(
         "-i",
         str(src),
         "-vf",
-        f"select='gt(scene,{threshold})',scale=480:-2",
+        f"select='gt(scene,{threshold})',showinfo,scale=480:-2",
         "-vsync",
         "vfr",
         "-q:v",
         "5",
         str(pattern),
     ]
-    run(cmd, timeout=180, check=False)
+    proc = run(cmd, timeout=180, check=False)
+    cut_times = _scene_pts((proc.stderr or "") + (proc.stdout or ""))
     frames = sorted(dest.glob("kf_*.jpg"))
     if len(frames) >= 3:
-        return frames[:max_frames]
+        return frames[:max_frames], cut_times
     # Uniform fallback so we always have pictures for local/VLM analysis.
     for old in frames:
         old.unlink(missing_ok=True)
@@ -228,7 +246,7 @@ def extract_scene_keyframes(
             check=False,
         )
         frames = sorted(dest.glob("kf_*.jpg"))
-    return frames[:max_frames]
+    return frames[:max_frames], cut_times
 
 
 def scene_cut_times(src: str | Path, threshold: float = 0.32, max_seconds: int = 90) -> list[float]:
@@ -246,17 +264,7 @@ def scene_cut_times(src: str | Path, threshold: float = 0.32, max_seconds: int =
         "-",
     ]
     proc = run(cmd, timeout=60, check=False)
-    times: list[float] = []
-    blob = (proc.stderr or "") + (proc.stdout or "")
-    for line in blob.splitlines():
-        if "pts_time:" not in line:
-            continue
-        try:
-            part = line.split("pts_time:", 1)[1].split()[0]
-            times.append(float(part))
-        except (IndexError, ValueError):
-            continue
-    return times
+    return _scene_pts((proc.stderr or "") + (proc.stdout or ""))
 
 
 def synthesize_bed(

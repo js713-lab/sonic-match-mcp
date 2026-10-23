@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from sonicmatch.config import Settings
+import hashlib
+from pathlib import Path
+
+from sonicmatch.config import Settings, seed_catalog_path
 from sonicmatch.errors import SonicError
 from sonicmatch.models import CATALOG_CHOICES, SearchQuery, Track, VideoSonicProfile
 from sonicmatch.music.embed import ensure_embed
@@ -21,11 +24,23 @@ class MusicHub:
         self.freesound = FreesoundAdapter(settings)
         self.library = LibraryAdapter(settings)
         self.index = TrackIndex(settings.db_path)
-        if self.index.count() == 0:
-            self.index.upsert(self.seed.all())
-        else:
-            # Keep seed rows fresh without wiping Jamendo/Freesound cache.
-            self.index.upsert(self.seed.all())
+        self._sync_seed()
+
+    def _sync_seed(self) -> None:
+        """Rewrite seed rows only when the catalog file changed."""
+        path = Path(self.seed._path) if self.seed._path else seed_catalog_path()
+        try:
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()[:20]
+        except OSError:
+            digest = "missing"
+        stamp = f"{digest}:{len(self.seed.all())}"
+        if (
+            self.index.meta_get("seed_stamp") == stamp
+            and self.index.count_source("seed") == len(self.seed.all())
+        ):
+            return
+        self.index.upsert(self.seed.all())
+        self.index.meta_set("seed_stamp", stamp)
 
     def get(self, track_id: str) -> Track | None:
         hit = self.index.get(track_id)
@@ -83,8 +98,8 @@ class MusicHub:
             )
 
         if catalog in {"auto", "seed"}:
-            for q in queries[:3]:
-                found.extend(self.seed.search(_q(q)))
+            # rank_tracks scores the whole catalog, so the extra filtered searches
+            # were a subset of all() and only duplicated work.
             found.extend(self.seed.all())
             notes.append(f"seed catalog: {len(self.seed.all())} tracks")
         # Generated beds are never mixed into "license-safe" auto recs.

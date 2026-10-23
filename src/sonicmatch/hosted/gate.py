@@ -9,10 +9,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 from urllib.request import Request, urlopen
 
 from sonicmatch.config import load_settings
+from sonicmatch.errors import SonicError
 from sonicmatch.hosted.ledger import Ledger
 from sonicmatch.hosted.page import render_home, render_key, render_message, render_open_source, render_pricing
 from sonicmatch.hosted.portal import (
@@ -20,6 +21,7 @@ from sonicmatch.hosted.portal import (
     load_timeline,
     match_job,
     public_url,
+    resolve_preview,
     save_upload,
     search_catalog,
     start_match,
@@ -148,6 +150,9 @@ def make_handler(gate: Gate):
             if path.startswith("/api/timeline/") and self.command == "GET":
                 self._timeline(path.rsplit("/", 1)[-1])
                 return
+            if path.startswith("/api/preview/") and self.command == "GET":
+                self._preview(unquote(path[len("/api/preview/") :]))
+                return
             if path == "/api/feedback" and self.command == "POST":
                 self._feedback()
                 return
@@ -171,6 +176,34 @@ def make_handler(gate: Gate):
 
         def _json(self, status: int, payload: dict[str, Any]) -> None:
             self._send(status, "application/json", json.dumps(payload).encode())
+
+        def _preview(self, track_id: str) -> None:
+            ip = self._client_ip()
+            if not gate.ledger.hit_allowed(ip, "preview", 60):
+                self._json(429, {"ok": False, "error": "Preview limit reached. Try again in an hour."})
+                return
+            gate.ledger.record_hit(ip, "preview")
+            try:
+                found = resolve_preview(track_id)
+            except ValueError:
+                self._json(404, {"ok": False, "error": "That track has no preview."})
+                return
+            except SonicError:
+                LOGGER.exception("preview failed")
+                self._json(503, {"ok": False, "error": "Preview audio is unavailable."})
+                return
+            if isinstance(found, str):
+                self._redirect(found)
+                return
+            if not found.is_file() or found.stat().st_size > 15 * 1024 * 1024:
+                self._json(404, {"ok": False, "error": "That track has no preview."})
+                return
+            kind = {
+                ".mp3": "audio/mpeg",
+                ".m4a": "audio/mp4",
+                ".wav": "audio/wav",
+            }.get(found.suffix.lower(), "application/octet-stream")
+            self._send_audio(found.read_bytes(), kind)
 
         def _timeline(self, asset_id: str) -> None:
             found = load_timeline(asset_id)
@@ -247,12 +280,20 @@ def make_handler(gate: Gate):
             gate.ledger.record_hit(ip, "match")
             LOGGER.info("portal match ip=%s platform=%s", ip, platform)
             job_id = start_match(source, platform)
-            self._json(202, {"ok": True, "status": "working", "job_id": job_id})
+            job = match_job(job_id) or {}
+            status = job.get("status") if job.get("status") in {"queued", "working"} else "working"
+            payload: dict[str, Any] = {"ok": True, "status": status, "job_id": job_id}
+            if status == "queued":
+                payload["ahead"] = int(job.get("ahead") or 0)
+            self._json(202, payload)
 
         def _match_status(self, job_id: str) -> None:
             job = match_job(job_id)
             if not job:
                 self._json(404, {"ok": False, "error": "That process is gone. Start it again."})
+                return
+            if job.get("status") == "queued":
+                self._json(200, {"ok": True, "status": "queued", "ahead": int(job.get("ahead") or 0)})
                 return
             if job.get("status") != "done":
                 self._json(200, {"ok": True, "status": "working"})
@@ -380,6 +421,43 @@ def make_handler(gate: Gate):
                 "error": {"code": -32000 - (http_status % 100), "message": message},
             }
             self._send(http_status, "application/json", json.dumps(payload).encode())
+
+        def _send_audio(self, data: bytes, content_type: str) -> None:
+            """Full body, or the requested byte range so the player can start."""
+            start = 0
+            end = len(data) - 1
+            status = 200
+            requested = self.headers.get("Range") or ""
+            if requested.startswith("bytes=") and data:
+                spec = requested.split("=", 1)[1].split(",", 1)[0].strip()
+                left, _, right = spec.partition("-")
+                try:
+                    if left == "" and right:
+                        start = max(0, len(data) - int(right))
+                        end = len(data) - 1
+                    else:
+                        start = int(left or 0)
+                        end = int(right) if right else len(data) - 1
+                    status = 206
+                except ValueError:
+                    start, end, status = 0, len(data) - 1, 200
+            if not data or start > end or start >= len(data):
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{len(data)}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            end = min(end, len(data) - 1)
+            chunk = data[start : end + 1]
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Accept-Ranges", "bytes")
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.send_header("Content-Length", str(len(chunk)))
+            if status == 206:
+                self.send_header("Content-Range", f"bytes {start}-{end}/{len(data)}")
+            self.end_headers()
+            self.wfile.write(chunk)
 
         def _send(self, status: int, content_type: str, body: bytes) -> None:
             self.send_response(status)

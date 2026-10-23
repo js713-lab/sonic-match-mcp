@@ -135,6 +135,7 @@ def score_track(
     instrumental_only: bool,
     genre: str | None = None,
     mood: str | None = None,
+    profile_vec: list[float] | None = None,
 ) -> tuple[float, str, bool]:
     moods = list(profile.overall_mood)
     if mood:
@@ -155,7 +156,8 @@ def score_track(
         ghay = _norm(" ".join(track.genres + track.tags + track.moods))
         genre_s = 1.0 if _norm(genre) in ghay else 0.35
 
-    sim = cosine(embed_profile(profile), track.embed or embed_track(track))
+    target = profile_vec if profile_vec is not None else embed_profile(profile)
+    sim = cosine(target, track.embed or embed_track(track))
     raw = (
         0.24 * m
         + 0.18 * e
@@ -197,6 +199,7 @@ def rank_tracks(
 ) -> list[Recommendation]:
     scored: list[Recommendation] = []
     seen: set[str] = set()
+    profile_vec = embed_profile(profile)
     for track in tracks:
         if track.id in seen:
             continue
@@ -209,6 +212,7 @@ def rank_tracks(
             instrumental_only=instrumental_only,
             genre=genre,
             mood=mood,
+            profile_vec=profile_vec,
         )
         if not ok:
             continue

@@ -25,6 +25,7 @@ def test_three_minute_clip_splits_into_several_music_sections():
     first = timeline["sections"][0]
     assert first["label"].startswith("0:00")
     assert first["bgm"]["title"] == "Latte"
+    assert first["bgm"]["preview"] is False
     assert first["sfx"]
     assert first["sfx"][0]["reference_only"] is True
     assert timeline["sections"][-1]["name"] == "Closing"

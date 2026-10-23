@@ -41,6 +41,10 @@ class VideoAsset(BaseModel):
     keyframe_paths: list[str] = Field(default_factory=list)
     proxy_path: Optional[str] = None
     silence_ratio: Optional[float] = None
+    # Scene-change times measured while extracting keyframes. None means not measured yet.
+    scene_cuts: Optional[list[float]] = None
+    # Serialized wav/librosa probe so analyze does not read the audio again.
+    audio_stats: dict[str, Any] = Field(default_factory=dict)
     degraded: list[str] = Field(default_factory=list)
 
 

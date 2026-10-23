@@ -33,12 +33,30 @@ from sonicmatch.policy import (
 
 _settings: Settings | None = None
 _hub: MusicHub | None = None
+_hub_key: tuple | None = None
+
+
+def _hub_identity(settings: Settings) -> tuple:
+    return (
+        str(settings.db_path),
+        settings.jamendo_client_id or "",
+        settings.freesound_api_key or "",
+        settings.user_library_path or "",
+        settings.epidemic_library_path or "",
+        settings.artlist_library_path or "",
+    )
 
 
 def configure(settings: Settings | None = None) -> Settings:
-    global _settings, _hub
-    _settings = settings or load_settings()
+    global _settings, _hub, _hub_key
+    incoming = settings or load_settings()
+    key = _hub_identity(incoming)
+    if _hub is not None and _hub_key == key:
+        _settings = incoming
+        return _settings
+    _settings = incoming
     _hub = MusicHub(_settings)
+    _hub_key = key
     return _settings
 
 
