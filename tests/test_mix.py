@@ -51,3 +51,24 @@ def test_recommend_then_get_top_id(settings):
     )
     assert recs["ok"]
     assert recs["recommendations"][0]["track"]["id"].startswith("seed_")
+
+
+def test_quote_ffmpeg_arguments_with_spaces_and_quotes():
+    from sonicmatch.ffmpeg_util import quote_ffmpeg_path, should_quote_arg
+
+    assert should_quote_arg("my clip.mp4") is True
+    assert quote_ffmpeg_path("my clip.mp4") == "'my clip.mp4'"
+
+    assert should_quote_arg("it's.mp4") is True
+    assert quote_ffmpeg_path("it's.mp4") == "'it'\\''s.mp4'"
+
+    assert should_quote_arg("path/to/clip.mp4") is True
+    assert should_quote_arg("C:\\path\\clip.mp4") is True
+
+    assert should_quote_arg("-y") is False
+    assert should_quote_arg("-i") is False
+    assert should_quote_arg("pcm_s16le") is False
+
+    cmd = ["ffmpeg", "-y", "-i", "my clip.mp4", "-i", "it's.mp4", "-c:a", "copy", "out.mp4"]
+    rendered = " ".join(quote_ffmpeg_path(c) if should_quote_arg(c) else c for c in cmd)
+    assert rendered == "ffmpeg -y -i 'my clip.mp4' -i 'it'\\''s.mp4' -c:a copy out.mp4"

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from sonicmatch.config import Settings, load_settings
 from sonicmatch.errors import SonicError
-from sonicmatch.ffmpeg_util import quote_ffmpeg_path, run, synthesize_bed, which_ffmpeg
+from sonicmatch.ffmpeg_util import quote_ffmpeg_path, run, should_quote_arg, synthesize_bed, which_ffmpeg
 from sonicmatch.ingest import load_asset
 from sonicmatch.models import MixResult, Recommendation, Track, VideoSonicProfile
 from sonicmatch.music.rank import hook_slice
@@ -246,7 +246,7 @@ def preview_mix(
         )
         notes.append("libmp3lame not available; preview audio is WAV")
 
-    pretty = " ".join(quote_ffmpeg_path(c) if ("/" in c or "\\" in c) else c for c in cmd)
+    pretty = " ".join(quote_ffmpeg_path(c) if should_quote_arg(c) else c for c in cmd)
     mix_spec = {
         "asset_id": asset_id,
         "track_id": track.id,
