@@ -290,5 +290,9 @@ def synthesize_bed(
     return dest
 
 
+def should_quote_arg(arg: str) -> bool:
+    return any(ch in arg for ch in ("/", "\\", " ", "\t", "\n", "'", '"'))
+
+
 def quote_ffmpeg_path(path: str) -> str:
     return "'" + path.replace("'", "'\\''") + "'"
